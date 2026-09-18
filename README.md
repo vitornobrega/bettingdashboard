@@ -24,3 +24,7 @@ volumes:
 ```
 
 A password da casa é guardada na base de dados local do servidor e não é devolvida pelo endpoint de listagem. Para produção, recomendo acrescentar encriptação com uma chave/secret do Docker.
+
+## Autenticação
+
+A aplicação agora exige autenticação. O primeiro ecrã permite **Entrar** ou **Criar conta**. As passwords das contas são armazenadas com hash `scrypt`, as sessões usam cookies HttpOnly e os dados (apostas, casas, movimentos e bónus) ficam isolados por utilizador. O cookie `Secure` pode ser ativado com `COOKIE_SECURE=true` quando a aplicação estiver atrás de HTTPS.
