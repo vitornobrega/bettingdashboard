@@ -10,13 +10,67 @@ CREATE TABLE IF NOT EXISTS bets(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INT
 CREATE TABLE IF NOT EXISTS transactions(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,house_id INTEGER,type TEXT,amount REAL,method TEXT,status TEXT,datetime TEXT,notes TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(house_id) REFERENCES houses(id));
 CREATE TABLE IF NOT EXISTS bonuses(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,house_id INTEGER,week_start TEXT,deadline TEXT,required_events INTEGER,min_odds REAL,min_combined_odds REAL,progress INTEGER DEFAULT 0,status TEXT DEFAULT 'open',notes TEXT,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(house_id) REFERENCES houses(id));`);
 for(const q of ["ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'","ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1","ALTER TABLE houses ADD COLUMN logo TEXT","ALTER TABLE bets ADD COLUMN bet_type TEXT DEFAULT 'single'","ALTER TABLE bets ADD COLUMN selections TEXT","ALTER TABLE bets ADD COLUMN combined_odds REAL"]){try{db.exec(q)}catch(e){}}
-db.prepare("UPDATE users SET role='admin' WHERE lower(email)=lower(?)").run('vitor.nobrega87@gmail.com');db.exec("INSERT OR IGNORE INTO countries(name,logo) VALUES ('Portugal','🇵🇹')");
-const pt=db.prepare("SELECT id FROM countries WHERE name='Portugal'").get();
-if(pt){
- const names=['Liga Portugal Betclic','Liga Portugal 2','Taça de Portugal','Liga 3','Campeonato de Portugal','Liga Portugal Feminino','Taça de Portugal Feminino'];
- const ins=db.prepare("INSERT OR IGNORE INTO competitions(country_id,name) VALUES(?,?)");
- for(const n of names)ins.run(pt.id,n);
-}
+db.prepare("UPDATE users SET role='admin' WHERE lower(email)=lower(?)").run('vitor.nobrega87@gmail.com');
+const catalog={
+'Portugal':['Liga Portugal Betclic','Liga Portugal 2','Taça de Portugal','Liga 3','Campeonato de Portugal','Liga Portugal Feminino','Taça de Portugal Feminino'],
+'Espanha':['LaLiga','LaLiga 2','Primera Federación','Copa del Rey','Liga F'],
+'Inglaterra':['Premier League','Championship','League One','League Two','FA Cup','EFL Cup','Women Super League'],
+'Alemanha':['Bundesliga','2. Bundesliga','3. Liga','DFB Pokal','Frauen-Bundesliga'],
+'Itália':['Série A','Série B','Série C','Taça de Itália','Serie A Feminina'],
+'França':['Ligue 1','Ligue 2','National','Coupe de France','Division 1 Feminine'],
+'Países Baixos':['Eredivisie','Eerste Divisie','KNVB Beker','Eredivisie Feminina'],
+'Bélgica':['Primeira Liga','Segunda Liga','Taça da Bélgica','Liga Feminina'],
+'Escócia':['Premiership','Championship','League One','League Two','Scottish Cup'],
+'Turquia':['Super Lig','1. Lig','Taça da Turquia','Supertaça'],
+'Grécia':['Super League','Super League 2','Taça da Grécia'],
+'Áustria':['Bundesliga','2. Liga','ÖFB Cup'],
+'Suíça':['Super League','Challenge League','Taça da Suíça'],
+'Portugal':['Liga Portugal Betclic','Liga Portugal 2','Taça de Portugal','Liga 3','Campeonato de Portugal','Liga Portugal Feminino','Taça de Portugal Feminino'],
+'Polónia':['Ekstraklasa','1. Liga','Taça da Polónia'],
+'República Checa':['1. Liga','2. Liga','Taça da República Checa'],
+'Roménia':['SuperLiga','Liga 2','Cupa României'],
+'Croácia':['HNL','Prva NL','Taça da Croácia'],
+'Sérvia':['Super Liga','Prva Liga','Taça da Sérvia'],
+'Ucrânia':['Premier League','Persha Liga','Taça da Ucrânia'],
+'Noruega':['Eliteserien','1. Divisjon','NM Cup'],
+'Suécia':['Allsvenskan','Superettan','Svenska Cupen'],
+'Dinamarca':['Superliga','1st Division','DBU Pokalen'],
+'Finlândia':['Veikkausliiga','Ykkösliiga','Taça da Finlândia'],
+'Irlanda':['Premier Division','First Division','FAI Cup'],
+'Irlanda do Norte':['Premiership','Championship','Irish Cup'],
+'Islândia':['Besta deild','1. deild','Bikarinn'],
+'Brasil':['Série A Betano','Série B','Série C','Série D','Copa do Brasil'],
+'Argentina':['Liga Profesional','Primera Nacional','Copa Argentina','Liga Profesional Feminina'],
+'Colômbia':['Primera A','Primera B','Copa Colombia'],
+'Chile':['Primera División','Primera B','Copa Chile'],
+'Uruguai':['Primera División','Segunda División','Copa Uruguay'],
+'Paraguai':['Primera División','División Intermedia','Copa Paraguay'],
+'Equador':['LigaPro Serie A','LigaPro Serie B','Copa Ecuador'],
+'Peru':['Liga 1','Liga 2','Copa Perú'],
+'Bolívia':['División Profesional','Copa Bolivia'],
+'México':['Liga MX','Liga de Expansión MX','Liga MX Feminina','Copa MX'],
+'EUA':['MLS','USL Championship','NWSL'],
+'Canadá':['Canadian Premier League','Canadian Championship'],
+'Costa Rica':['Primera División','Liga de Ascenso'],
+'Japão':['J1 League','J2 League','J3 League','Emperor Cup','WE League'],
+'Coreia do Sul':['K League 1','K League 2','K3 League','K4 League'],
+'China':['Chinese Super League','China League One','FA Cup'],
+'Austrália':['A-League Men','A-League Women','Australia Cup'],
+'Nova Zelândia':['National League','Chatham Cup'],
+'África do Sul':['Betway Premiership','Motsepe Foundation Championship','Nedbank Cup'],
+'Marrocos':['Botola Pro','Botola 2','Taça de Marrocos'],
+'Argélia':['Ligue 1','Ligue 2','Taça da Argélia'],
+'Tunísia':['Ligue 1','Ligue 2','Taça da Tunísia'],
+'Egipto':['Premier League','Second Division','Egypt Cup'],
+'Arábia Saudita':['Saudi Pro League','Saudi First Division','King Cup'],
+'Emirados Árabes Unidos':['UAE Pro League','UAE First Division','President Cup'],
+'Catar':['Qatar Stars League','Qatari Second Division','Emir Cup'],
+'Israel':['Ligat ha’Al','Liga Leumit','State Cup'],
+'Rússia':['Premier League','First League','Russian Cup'],
+};
+const insCountry=db.prepare("INSERT OR IGNORE INTO countries(name,logo) VALUES (?,?)");
+const insComp=db.prepare("INSERT OR IGNORE INTO competitions(country_id,name) VALUES (?,?)");
+for(const [country,comps] of Object.entries(catalog)){insCountry.run(country,'');const row=db.prepare("SELECT id FROM countries WHERE name=?").get(country);for(const name of comps)insComp.run(row.id,name);}
 const defaultMarkets=['1X2','Dupla Hipótese','Mais de 0.5 Golos','Mais de 1.5 Golos','Mais de 2.5 Golos','Menos de 0.5 Golos','Menos de 1.5 Golos','Menos de 2.5 Golos','Ambas Marcam','Handicap','Empate Anula','Resultado ao Intervalo'];
 for(const n of defaultMarkets)db.prepare("INSERT OR IGNORE INTO markets(name) VALUES(?)").run(n);
 
@@ -47,7 +101,7 @@ app.post('/api/admin/markets',requireAdmin,(req,res)=>{try{run('INSERT INTO mark
 app.put('/api/admin/markets/:id',requireAdmin,(req,res)=>{run('UPDATE markets SET name=?,active=? WHERE id=?',req.body.name,req.body.active?1:0,req.params.id);res.json({ok:true})});
 app.delete('/api/admin/markets/:id',requireAdmin,(req,res)=>{run('DELETE FROM markets WHERE id=?',req.params.id);res.json({ok:true})});
 app.get('/api/houses',(req,res)=>res.json(all('SELECT id,name,username,logo,bonus_day,bonus_conditions,created_at FROM houses WHERE user_id=? ORDER BY name',req.user.id)));
-app.post('/api/houses',(req,res)=>{const x=req.body;run('INSERT INTO houses(user_id,name,username,password,logo,bonus_day,bonus_conditions) VALUES(?,?,?,?,?,?,?)',req.user.id,x.name,x.username||'',x.logo||'',x.bonus_day||'',x.bonus_conditions||'');res.json({ok:true})});
+app.post('/api/houses',(req,res)=>{const x=req.body;run('INSERT INTO houses(user_id,name,username,logo,bonus_day,bonus_conditions) VALUES(?,?,?,?,?,?)',req.user.id,x.name,x.username||'',x.logo||'',x.bonus_day||'',x.bonus_conditions||'');res.json({ok:true})});
 app.put('/api/houses/:id',(req,res)=>{const x=req.body;run('UPDATE houses SET name=?,username=?,logo=?,bonus_day=?,bonus_conditions=? WHERE id=? AND user_id=?',x.name,x.username,x.logo||'',x.bonus_day||'',x.bonus_conditions||'',req.params.id,req.user.id);res.json({ok:true})});
 app.get('/api/bets',(req,res)=>res.json(all('SELECT b.*,h.name house_name,h.logo house_logo FROM bets b LEFT JOIN houses h ON h.id=b.house_id AND h.user_id=b.user_id WHERE b.user_id=? ORDER BY datetime(b.datetime) DESC,b.id DESC',req.user.id)));
 app.post('/api/bets',(req,res)=>{const x=req.body;run('INSERT INTO bets(user_id,datetime,house_id,country,competition,home_team,away_team,market,selection,odds,stake,units,bonus,result,profit,notes,bet_type,selections,combined_odds) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',req.user.id,x.datetime,x.house_id||null,x.country||'',x.competition||'',x.home_team||'',x.away_team||'',x.market||'',x.selection||'',Number(x.odds)||0,Number(x.stake)||0,Number(x.units)||0,x.bonus?1:0,x.result||'pending',Number(x.profit)||0,x.notes||'',x.bet_type||'single',JSON.stringify(x.selections||[]),Number(x.combined_odds)||Number(x.odds)||0);res.json({ok:true})});
