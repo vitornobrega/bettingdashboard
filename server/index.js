@@ -10,7 +10,16 @@ CREATE TABLE IF NOT EXISTS bets(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INT
 CREATE TABLE IF NOT EXISTS transactions(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,house_id INTEGER,type TEXT,amount REAL,method TEXT,status TEXT,datetime TEXT,notes TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(house_id) REFERENCES houses(id));
 CREATE TABLE IF NOT EXISTS bonuses(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,house_id INTEGER,week_start TEXT,deadline TEXT,required_events INTEGER,min_odds REAL,min_combined_odds REAL,progress INTEGER DEFAULT 0,status TEXT DEFAULT 'open',notes TEXT,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(house_id) REFERENCES houses(id));`);
 for(const q of ["ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'","ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1","ALTER TABLE houses ADD COLUMN logo TEXT","ALTER TABLE bets ADD COLUMN bet_type TEXT DEFAULT 'single'","ALTER TABLE bets ADD COLUMN selections TEXT","ALTER TABLE bets ADD COLUMN combined_odds REAL"]){try{db.exec(q)}catch(e){}}
-db.prepare("UPDATE users SET role='admin' WHERE lower(email)=lower(?)").run('vitor.nobrega87@gmail.com');
+db.prepare("UPDATE users SET role='admin' WHERE lower(email)=lower(?)").run('vitor.nobrega87@gmail.com');db.exec("INSERT OR IGNORE INTO countries(name,logo) VALUES ('Portugal','🇵🇹')");
+const pt=db.prepare("SELECT id FROM countries WHERE name='Portugal'").get();
+if(pt){
+ const names=['Liga Portugal Betclic','Liga Portugal 2','Taça de Portugal','Liga 3','Campeonato de Portugal','Liga Portugal Feminino','Taça de Portugal Feminino'];
+ const ins=db.prepare("INSERT OR IGNORE INTO competitions(country_id,name) VALUES(?,?)");
+ for(const n of names)ins.run(pt.id,n);
+}
+const defaultMarkets=['1X2','Dupla Hipótese','Mais de 0.5 Golos','Mais de 1.5 Golos','Mais de 2.5 Golos','Menos de 0.5 Golos','Menos de 1.5 Golos','Menos de 2.5 Golos','Ambas Marcam','Handicap','Empate Anula','Resultado ao Intervalo'];
+for(const n of defaultMarkets)db.prepare("INSERT OR IGNORE INTO markets(name) VALUES(?)").run(n);
+
 function hashPassword(p){const s=crypto.randomBytes(16).toString('hex');return s+':'+crypto.scryptSync(p,s,64).toString('hex')}function verifyPassword(p,st){const[a,k]=String(st).split(':');if(!a||!k)return false;const h=crypto.scryptSync(p,a,64).toString('hex');return crypto.timingSafeEqual(Buffer.from(h,'hex'),Buffer.from(k,'hex'))}function token(){return crypto.randomBytes(32).toString('hex')}
 function setCookie(res,n,v,max){res.setHeader('Set-Cookie',`${n}=${v}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${max}${process.env.COOKIE_SECURE==='true'?'; Secure':''}`)}function cookies(req){return Object.fromEntries(String(req.headers.cookie||'').split(';').filter(Boolean).map(x=>{const i=x.indexOf('=');return[x.slice(0,i).trim(),decodeURIComponent(x.slice(i+1).trim())]}))}
 function currentUser(req){const t=cookies(req).bt_session;if(!t)return null;const s=db.prepare('SELECT u.id,u.name,u.email,u.role,u.active,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=?').get(t);if(!s||!s.active||new Date(s.expires_at)<=new Date()){if(t)db.prepare('DELETE FROM sessions WHERE token=?').run(t);return null}return s}
