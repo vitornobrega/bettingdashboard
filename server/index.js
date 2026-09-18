@@ -25,7 +25,6 @@ const catalog={
 'Grécia':['Super League','Super League 2','Taça da Grécia'],
 'Áustria':['Bundesliga','2. Liga','ÖFB Cup'],
 'Suíça':['Super League','Challenge League','Taça da Suíça'],
-'Portugal':['Liga Portugal Betclic','Liga Portugal 2','Taça de Portugal','Liga 3','Campeonato de Portugal','Liga Portugal Feminino','Taça de Portugal Feminino'],
 'Polónia':['Ekstraklasa','1. Liga','Taça da Polónia'],
 'República Checa':['1. Liga','2. Liga','Taça da República Checa'],
 'Roménia':['SuperLiga','Liga 2','Cupa României'],
@@ -68,9 +67,11 @@ const catalog={
 'Israel':['Ligat ha’Al','Liga Leumit','State Cup'],
 'Rússia':['Premier League','First League','Russian Cup'],
 };
+const flags={
+'Portugal':'🇵🇹','Espanha':'🇪🇸','Inglaterra':'🏴','Alemanha':'🇩🇪','Itália':'🇮🇹','França':'🇫🇷','Países Baixos':'🇳🇱','Bélgica':'🇧🇪','Escócia':'🏴','Turquia':'🇹🇷','Grécia':'🇬🇷','Áustria':'🇦🇹','Suíça':'🇨🇭','Polónia':'🇵🇱','República Checa':'🇨🇿','Roménia':'🇷🇴','Croácia':'🇭🇷','Sérvia':'🇷🇸','Ucrânia':'🇺🇦','Noruega':'🇳🇴','Suécia':'🇸🇪','Dinamarca':'🇩🇰','Finlândia':'🇫🇮','Irlanda':'🇮🇪','Irlanda do Norte':'🇬🇧','Islândia':'🇮🇸','Brasil':'🇧🇷','Argentina':'🇦🇷','Colômbia':'🇨🇴','Chile':'🇨🇱','Uruguai':'🇺🇾','Paraguai':'🇵🇾','Equador':'🇪🇨','Peru':'🇵🇪','Bolívia':'🇧🇴','México':'🇲🇽','EUA':'🇺🇸','Canadá':'🇨🇦','Costa Rica':'🇨🇷','Japão':'🇯🇵','Coreia do Sul':'🇰🇷','China':'🇨🇳','Austrália':'🇦🇺','Nova Zelândia':'🇳🇿','África do Sul':'🇿🇦','Marrocos':'🇲🇦','Argélia':'🇩🇿','Tunísia':'🇹🇳','Egipto':'🇪🇬','Arábia Saudita':'🇸🇦','Emirados Árabes Unidos':'🇦🇪','Catar':'🇶🇦','Israel':'🇮🇱','Rússia':'🇷🇺'};
 const insCountry=db.prepare("INSERT OR IGNORE INTO countries(name,logo) VALUES (?,?)");
 const insComp=db.prepare("INSERT OR IGNORE INTO competitions(country_id,name) VALUES (?,?)");
-for(const [country,comps] of Object.entries(catalog)){insCountry.run(country,'');const row=db.prepare("SELECT id FROM countries WHERE name=?").get(country);for(const name of comps)insComp.run(row.id,name);}
+for(const [country,comps] of Object.entries(catalog)){insCountry.run(country,flags[country]||'');const row=db.prepare("SELECT id FROM countries WHERE name=?").get(country);for(const name of comps)insComp.run(row.id,name);}
 const defaultMarkets=['1X2','Dupla Hipótese','Mais de 0.5 Golos','Mais de 1.5 Golos','Mais de 2.5 Golos','Menos de 0.5 Golos','Menos de 1.5 Golos','Menos de 2.5 Golos','Ambas Marcam','Handicap','Empate Anula','Resultado ao Intervalo'];
 for(const n of defaultMarkets)db.prepare("INSERT OR IGNORE INTO markets(name) VALUES(?)").run(n);
 
