@@ -115,6 +115,29 @@ app.post('/api/transactions',(req,res)=>{const x=req.body;run('INSERT INTO trans
 app.get('/api/bonuses',(req,res)=>res.json(all('SELECT b.*,h.name house_name FROM bonuses b LEFT JOIN houses h ON h.id=b.house_id AND h.user_id=b.user_id WHERE b.user_id=? ORDER BY deadline',req.user.id)));
 app.post('/api/bonuses',(req,res)=>{const x=req.body;run('INSERT INTO bonuses(user_id,house_id,week_start,deadline,required_events,min_odds,min_combined_odds,progress,status,notes) VALUES(?,?,?,?,?,?,?,?,?,?)',req.user.id,x.house_id,x.week_start,x.deadline,x.required_events,x.min_odds,x.min_combined_odds,x.progress||0,x.status||'open',x.notes||'');res.json({ok:true})});
 app.put('/api/bonuses/:id',(req,res)=>{const x=req.body;run('UPDATE bonuses SET progress=?,status=?,notes=? WHERE id=? AND user_id=?',x.progress,x.status,x.notes||'',req.params.id,req.user.id)});
+app.get('/api/analysis',(req,res)=>{
+  const q=req.query;
+  let rows=all('SELECT b.*,h.name house_name FROM bets b LEFT JOIN houses h ON h.id=b.house_id AND h.user_id=b.user_id WHERE b.user_id=? ORDER BY datetime(b.datetime) DESC,b.id DESC',req.user.id);
+  rows=rows.filter(x=>(!q.house_id||String(x.house_id)===String(q.house_id))&&(!q.market||x.market===q.market)&&(!q.country||x.country===q.country)&&(!q.competition||x.competition===q.competition)&&(!q.team||x.home_team===q.team||x.away_team===q.team)&&(!q.from||x.datetime>=q.from)&&(!q.to||x.datetime<=q.to)&&(!q.min_odds||Number(x.odds)>=Number(q.min_odds))&&(!q.max_odds||Number(x.odds)<=Number(q.max_odds)));
+  const resolved=rows.filter(x=>x.result&&x.result!=='pending');
+  const summary={bets:rows.length,resolved:resolved.length,stake:resolved.reduce((a,x)=>a+Number(x.stake||0),0),pnl:resolved.reduce((a,x)=>a+Number(x.profit||0),0),wins:resolved.filter(x=>x.result==='win').length};
+  summary.roi=summary.stake?summary.pnl/summary.stake*100:0; summary.winRate=summary.resolved?summary.wins/summary.resolved*100:0;
+  const groupBy=(keyFn)=>Object.values(rows.reduce((m,x)=>{const k=keyFn(x)||'—';const g=m[k]||{name:k,bets:0,resolved:0,stake:0,pnl:0,wins:0};g.bets++;if(x.result!=='pending'){g.resolved++;g.stake+=Number(x.stake||0);g.pnl+=Number(x.profit||0);if(x.result==='win')g.wins++;}m[k]=g;return m},{})).map(g=>({...g,roi:g.stake?g.pnl/g.stake*100:0,winRate:g.resolved?g.wins/g.resolved*100:0})).sort((a,b)=>b.pnl-a.pnl);
+  const teams=groupBy(x=>x.home_team+' / '+x.away_team);
+  const teamMap={}; rows.forEach(x=>[x.home_team,x.away_team].filter(Boolean).forEach(t=>{const g=teamMap[t]||{name:t,bets:0,resolved:0,stake:0,pnl:0,wins:0};g.bets++;if(x.result!=='pending'){g.resolved++;g.stake+=Number(x.stake||0);g.pnl+=Number(x.profit||0);if(x.result==='win')g.wins++;}teamMap[t]=g;}));
+  const teamStats=Object.values(teamMap).map(g=>({...g,roi:g.stake?g.pnl/g.stake*100:0,winRate:g.resolved?g.wins/g.resolved*100:0})).sort((a,b)=>b.pnl-a.pnl);
+  const recent=q.team?rows.filter(x=>x.home_team===q.team||x.away_team===q.team).filter(x=>x.result!=='pending').slice(0,Number(q.limit)||10):[];
+  res.json({summary,byMarket:groupBy(x=>x.market),byCountry:groupBy(x=>x.country),byCompetition:groupBy(x=>x.competition),byHouse:groupBy(x=>x.house_name),teamStats,recent});
+});
+app.post('/api/auth/change-password',(req,res)=>{
+  const u=req.user,p=String(req.body.currentPassword||''),n=String(req.body.newPassword||'');
+  if(n.length<8)return res.status(400).json({error:'A nova password deve ter pelo menos 8 caracteres.'});
+  const row=db.prepare('SELECT password_hash FROM users WHERE id=?').get(u.id);
+  if(!row||!verifyPassword(p,row.password_hash))return res.status(400).json({error:'Password atual incorreta.'});
+  db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(hashPassword(n),u.id);
+  db.prepare('DELETE FROM sessions WHERE user_id=? AND token<>?').run(u.id,cookies(req).bt_session||'');
+  res.json({ok:true});
+});
 app.get('/api/stats',(req,res)=>{const q=req.query,bets=all('SELECT * FROM bets WHERE user_id=?',req.user.id).filter(x=>(!q.house_id||String(x.house_id)===String(q.house_id))&&(!q.from||x.datetime>=q.from)&&(!q.to||x.datetime<=q.to)),resolved=bets.filter(x=>x.result!=='pending'),stake=resolved.reduce((s,x)=>s+Number(x.stake||0),0),pnl=resolved.reduce((s,x)=>s+Number(x.profit||0),0),wins=resolved.filter(x=>x.result==='win').length,tx=all(`SELECT COALESCE(SUM(CASE WHEN type IN ('deposit','bonus','adjustment') THEN amount WHEN type='withdrawal' THEN -amount ELSE 0 END),0) balance FROM transactions WHERE user_id=?`,req.user.id)[0].balance;res.json({count:bets.length,resolved:resolved.length,pnl,stake,roi:stake?pnl/stake*100:0,winRate:resolved.length?wins/resolved.length*100:0,balance:Number(tx)+pnl})});
 app.get('/api/export',(req,res)=>{const rows=all('SELECT b.datetime,h.name house,b.country,b.competition,b.home_team,b.away_team,b.market,b.selection,b.odds,b.stake,b.units,b.bonus,b.result,b.profit,b.notes,b.bet_type,b.combined_odds FROM bets b LEFT JOIN houses h ON h.id=b.house_id WHERE b.user_id=? ORDER BY b.datetime',req.user.id);const cols=Object.keys(rows[0]||{datetime:'',house:'',country:'',competition:'',home_team:'',away_team:'',market:'',selection:'',odds:'',stake:'',units:'',bonus:'',result:'',profit:'',notes:'',bet_type:'',combined_odds:''});const esc=v=>'"'+String(v??'').replaceAll('"','""')+'"';res.type('text/csv').send([cols.join(','),...rows.map(x=>cols.map(c=>esc(x[c])).join(','))].join('\n'))});
 app.use(express.static(path.join(__dirname,'..','dist')));app.use((req,res)=>res.sendFile(path.join(__dirname,'..','dist','index.html')));app.listen(process.env.PORT||3000,'0.0.0.0',()=>console.log('BetTracker running'));
