@@ -1,2 +1,2 @@
-import React,{useEffect,useState}from'react';import{createRoot}from'react-dom/client';import{LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer}from'recharts';import'./style.css';
+import React,{useEffect,useState}from'react';import*as ReactDOM from'react-dom/client';import{LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer}from'recharts';import'./style.css';
 const api=(u,o={})=>fetch('/api'+u,{headers:{'Content-Type':'application/json',...(o.headers||{})},...o}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Erro');return d}),now=()=>new Date().toISOString().slice(0,16);
