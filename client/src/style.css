@@ -132,3 +132,8 @@ header{position:sticky;top:0;background:#111827;color:white;padding:14px 20px;di
 .house-name-cell{display:flex;align-items:center;gap:9px;min-width:0}
 .house-table-logo{width:28px;height:28px;object-fit:contain;border-radius:6px;background:#fff;border:1px solid #e5e7eb;padding:2px;flex:none}
 .house-name-cell b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+
+/* Logo da casa no formulário e histórico */
+.house-bet-select{display:flex;align-items:center;gap:8px}.house-bet-select select{flex:1;min-width:0}.house-bet-logo{width:28px;height:28px;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px;background:#fff;padding:3px}.bet-house-cell{display:flex;align-items:center;justify-content:center;min-height:30px}.bet-house-logo{width:28px;height:28px;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px;background:#fff;padding:3px}.bet-date-cell{white-space:nowrap}
+@media(max-width:600px){.bet-house-logo{width:25px;height:25px}.house-bet-logo{width:26px;height:26px}}
