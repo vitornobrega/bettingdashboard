@@ -116,3 +116,13 @@ header{position:sticky;top:0;background:#111827;color:white;padding:14px 20px;di
   .bets-tablewrap .history-type b{font-size:10px}
   .bets-tablewrap .icon-btn{width:30px;height:30px;margin:0 1px}
 }
+
+/* Histórico: colunas atuais (sem resultado, com odd) */
+@media(max-width:600px){
+  .bets-tablewrap th:nth-child(1),.bets-tablewrap td:nth-child(1){width:64px}
+  .bets-tablewrap th:nth-child(2),.bets-tablewrap td:nth-child(2){width:46px;text-align:center}
+  .bets-tablewrap th:nth-child(3),.bets-tablewrap td:nth-child(3){width:54px;text-align:right}
+  .bets-tablewrap th:nth-child(4),.bets-tablewrap td:nth-child(4){width:78px;text-align:right}
+  .bets-tablewrap th:nth-child(5),.bets-tablewrap td:nth-child(5){width:78px;text-align:right}
+  .bets-tablewrap th:nth-child(6),.bets-tablewrap td:nth-child(6){width:68px;text-align:center}
+}
