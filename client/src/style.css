@@ -86,3 +86,33 @@ header{position:sticky;top:0;background:#111827;color:white;padding:14px 20px;di
   .bets-tablewrap .icon-btn{width:30px;height:30px;margin:0 1px}
   .bets-tablewrap .action-svg{width:17px;height:17px}
 }
+
+
+/* Histórico de apostas: tabela compacta por resultado */
+.bets-tablewrap .history-type{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-width:30px;height:30px;padding:0 7px;border-radius:8px;font-weight:800}
+.bets-tablewrap .history-type .material-symbols-outlined{font-size:19px;width:19px;height:19px}
+.bets-tablewrap .history-type.single{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}
+.bets-tablewrap .history-type.multiple{background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe}
+.bets-tablewrap .history-type b{font-size:11px;line-height:1}
+.bets-tablewrap tr.bet-history-win td{background:#f0fdf4;border-bottom-color:#bbf7d0}
+.bets-tablewrap tr.bet-history-loss td{background:#fef2f2;border-bottom-color:#fecaca}
+.bets-tablewrap tr.bet-history-pending td{background:#fff}
+.bets-tablewrap tr.bet-history-win:hover td{background:#dcfce7}
+.bets-tablewrap tr.bet-history-loss:hover td{background:#fee2e2}
+.bets-tablewrap .result.win{color:#15803d}
+.bets-tablewrap .result.loss{color:#dc2626}
+@media(max-width:600px){
+  .bets-tablewrap{overflow-x:auto}
+  .bets-tablewrap table{min-width:0!important;width:100%;table-layout:fixed}
+  .bets-tablewrap th,.bets-tablewrap td{display:table-cell!important;padding:9px 6px;font-size:12px;white-space:normal;vertical-align:middle}
+  .bets-tablewrap th:nth-child(1),.bets-tablewrap td:nth-child(1){width:70px}
+  .bets-tablewrap th:nth-child(2),.bets-tablewrap td:nth-child(2){width:48px;text-align:center}
+  .bets-tablewrap th:nth-child(3),.bets-tablewrap td:nth-child(3){width:82px;text-align:right}
+  .bets-tablewrap th:nth-child(4),.bets-tablewrap td:nth-child(4){width:82px;text-align:right}
+  .bets-tablewrap th:nth-child(5),.bets-tablewrap td:nth-child(5){width:68px;text-align:center}
+  .bets-tablewrap th:nth-child(6),.bets-tablewrap td:nth-child(6){width:70px;text-align:center}
+  .bets-tablewrap .history-type{min-width:28px;height:28px;padding:0 5px}
+  .bets-tablewrap .history-type .material-symbols-outlined{font-size:17px;width:17px;height:17px}
+  .bets-tablewrap .history-type b{font-size:10px}
+  .bets-tablewrap .icon-btn{width:30px;height:30px;margin:0 1px}
+}
