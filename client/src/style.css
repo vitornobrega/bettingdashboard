@@ -34,3 +34,8 @@ header{position:sticky;top:0;background:#111827;color:white;padding:14px 20px;di
 .icon-btn.delete{color:#dc2626}
 .icon-btn.edit:hover{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
 .icon-btn.delete:hover{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+
+/* Material Design Icons */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0');
+.material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:20px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-feature-settings:'liga';-webkit-font-smoothing:antialiased;font-feature-settings:'liga'}
+.action-icon{font-size:19px;width:19px;height:19px;display:inline-flex;align-items:center;justify-content:center;transition:transform .15s ease}
