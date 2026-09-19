@@ -142,3 +142,6 @@ header{position:sticky;top:0;background:#111827;color:white;padding:14px 20px;di
 .bet-history-loss td{color:var(--red-color)}
 input[type=color]{height:42px;padding:3px!important;cursor:pointer}
 html[data-theme='dark']{--bg:#111827;--surface:#1f2937;--text:#f9fafb;--border:#374151}html[data-theme='dark'] body{background:var(--bg);color:var(--text)}html[data-theme='dark'] section,html[data-theme='dark'] .card{border-color:var(--border)}html[data-theme='dark'] input,html[data-theme='dark'] select,html[data-theme='dark'] textarea{background:#111827;color:#f9fafb;border-color:#4b5563}
+
+.bets-tablewrap .history-type-svg{width:19px;height:19px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.bets-tablewrap .history-type-svg circle{fill:none}
+@media(max-width:600px){.bets-tablewrap .history-type-svg{width:17px;height:17px}}
