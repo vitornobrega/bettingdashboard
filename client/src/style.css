@@ -126,3 +126,9 @@ header{position:sticky;top:0;background:#111827;color:white;padding:14px 20px;di
   .bets-tablewrap th:nth-child(5),.bets-tablewrap td:nth-child(5){width:78px;text-align:right}
   .bets-tablewrap th:nth-child(6),.bets-tablewrap td:nth-child(6){width:68px;text-align:center}
 }
+
+
+/* Tabelas de casas e movimentos */
+.house-name-cell{display:flex;align-items:center;gap:9px;min-width:0}
+.house-table-logo{width:28px;height:28px;object-fit:contain;border-radius:6px;background:#fff;border:1px solid #e5e7eb;padding:2px;flex:none}
+.house-name-cell b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
