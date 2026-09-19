@@ -39,3 +39,17 @@ header{position:sticky;top:0;background:#111827;color:white;padding:14px 20px;di
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0');
 .material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:20px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;word-wrap:normal;direction:ltr;-webkit-font-feature-settings:'liga';-webkit-font-smoothing:antialiased;font-feature-settings:'liga'}
 .action-icon{font-size:19px;width:19px;height:19px;display:inline-flex;align-items:center;justify-content:center;transition:transform .15s ease}
+
+/* Identificação visual do tipo de aposta */
+.bet-type-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800;line-height:1;white-space:nowrap}
+.bet-type-badge .material-symbols-outlined{font-size:16px;width:16px;height:16px}
+.bet-type-badge.single{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}
+.bet-type-badge.multiple{background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe}
+.bet-type-badge em{font-style:normal;font-weight:700;opacity:.75;margin-left:2px}
+.bet-row-multiple td{background:#fafaff}
+.multi .section-head{align-items:center}
+.multi .tablewrap{margin-top:12px}
+.multi table td:first-child{text-align:center}
+.multi-event-number{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#e0e7ff;color:#3730a3;font-weight:800;font-size:12px}
+.multi-event-action{width:34px;height:34px;border:1px solid #fecaca;border-radius:9px;background:#fff1f2;color:#dc2626;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s ease}
+.multi-event-action:hover{background:#fee2e2;border-color:#fca5a5;transform:translateY(-1px)}
