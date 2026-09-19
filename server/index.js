@@ -99,7 +99,7 @@ app.put('/api/admin/competitions/:id',requireAdmin,(req,res)=>{run('UPDATE compe
 app.delete('/api/admin/competitions/:id',requireAdmin,(req,res)=>{run('DELETE FROM competitions WHERE id=?',req.params.id);res.json({ok:true})});
 app.get('/api/competitions',(req,res)=>res.json(all('SELECT c.*,p.name country_name FROM competitions c JOIN countries p ON p.id=c.country_id ORDER BY p.name,c.name')));
 app.get('/api/admin/markets',requireAdmin,(req,res)=>res.json(all('SELECT * FROM markets ORDER BY name')));
-app.get('/api/markets',(req,res)=>res.json(all('SELECT * FROM markets WHERE active=1 ORDER BY name')));
+app.get('/api/markets',(req,res)=>res.json(all('SELECT * FROM markets WHERE active=1 ORDER BY name')));app.post('/api/markets',(req,res)=>{const name=String(req.body.name||'').trim();if(!name)return res.status(400).json({error:'Indica o nome do mercado.'});try{run('INSERT INTO markets(name,active) VALUES(?,1)',name);res.json({ok:true,name})}catch(e){res.status(400).json({error:'Mercado já existe.'})}});
 app.post('/api/admin/markets',requireAdmin,(req,res)=>{try{run('INSERT INTO markets(name,active) VALUES(?,?)',req.body.name,req.body.active===false?0:1);res.json({ok:true})}catch(e){res.status(400).json({error:'Mercado já existe.'})}});
 app.put('/api/admin/markets/:id',requireAdmin,(req,res)=>{run('UPDATE markets SET name=?,active=? WHERE id=?',req.body.name,req.body.active?1:0,req.params.id);res.json({ok:true})});
 app.delete('/api/admin/markets/:id',requireAdmin,(req,res)=>{run('DELETE FROM markets WHERE id=?',req.params.id);res.json({ok:true})});
