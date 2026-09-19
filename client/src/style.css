@@ -18,3 +18,11 @@ header{position:sticky;top:0;background:#111827;color:white;padding:14px 20px;di
 @media(max-width:800px){.side-menu{width:250px;transform:translateX(-100%);transition:transform .2s ease;width:250px}.side-menu.open{transform:translateX(0)}.side-menu.collapsed{width:250px}.side-menu.collapsed .side-brand b,.side-menu.collapsed .nav-section small,.side-menu.collapsed .side-nav button:not(.active),.side-menu.collapsed .side-bottom a,.side-menu.collapsed .side-bottom button{display:flex}.side-menu.collapsed .side-nav button,.side-menu.collapsed .side-bottom button,.side-menu.collapsed .side-bottom a{justify-content:flex-start;padding:9px 12px;font-size:14px}.side-menu .menu-toggle{right:12px;top:18px}.app-main,.app-main.menu-expanded,.app-main.menu-collapsed{margin-left:0;padding:12px}.mobile-topbar{display:flex;align-items:center;gap:12px;background:#111827;color:#fff;margin:-12px -12px 14px;padding:12px 14px;position:sticky;top:0;z-index:30}.mobile-topbar button{background:none;border:0;color:#fff;font-size:22px;cursor:pointer}.dashboard-page{padding:0}.dashboard-page.positive{background:linear-gradient(180deg,#ecfdf5 0%,#f8fafc 55%)}.dashboard-page.negative{background:linear-gradient(180deg,#fef2f2 0%,#f8fafc 55%)}}
 
 .selection-editor{margin-top:14px;padding:14px;border:1px solid #dbeafe;border-radius:12px;background:#eff6ff}.selection-editor .grid{margin-bottom:4px}.selection-editor button,.multi>button{border:1px solid #d1d5db;background:white;color:#111827;border-radius:8px;padding:9px 12px;cursor:pointer}.multi .tablewrap{margin-bottom:12px}.multi table{min-width:820px}.multi td:last-child{white-space:nowrap}.multi td button+button{margin-left:5px}@media(max-width:800px){.selection-editor .grid{grid-template-columns:1fr}.multi{overflow:hidden}.multi .tablewrap{overflow-x:auto}}
+
+
+/* Ações compactas da lista de apostas */
+.table-actions{white-space:nowrap;text-align:center}
+.icon-btn{width:34px;height:34px;padding:0;margin:0 3px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;line-height:1;transition:all .15s ease}
+.icon-btn:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(15,23,42,.12)}
+.icon-btn.edit:hover{background:#eff6ff;border-color:#bfdbfe}
+.icon-btn.delete:hover{background:#fef2f2;border-color:#fecaca}
