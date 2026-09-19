@@ -56,30 +56,33 @@ header{position:sticky;top:0;background:#111827;color:white;padding:14px 20px;di
 .multi-event-action:hover{background:#fee2e2;border-color:#fca5a5;transform:translateY(-1px)}
 
 
-/* Lista de apostas compacta no mobile */
+/* Lista de apostas otimizada no mobile */
 .bet-game-cell{min-width:180px}
 .bet-game-cell strong{display:block;font-weight:700}
 .bet-game-cell span{display:none;color:#64748b;font-size:11px;margin-top:3px}
+.action-svg{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 @media(max-width:600px){
-  .tablewrap table{min-width:0;width:100%;table-layout:fixed}
-  .tablewrap th,.tablewrap td{padding:8px 5px;font-size:12px;white-space:normal;vertical-align:middle}
-  .tablewrap th:nth-child(2),.tablewrap td:nth-child(2),
-  .tablewrap th:nth-child(3),.tablewrap td:nth-child(3),
-  .tablewrap th:nth-child(4),.tablewrap td:nth-child(4),
-  .tablewrap th:nth-child(5),.tablewrap td:nth-child(5),
-  .tablewrap th:nth-child(7),.tablewrap td:nth-child(7),
-  .tablewrap th:nth-child(8),.tablewrap td:nth-child(8),
-  .tablewrap th:nth-child(12),.tablewrap td:nth-child(12){display:none}
-  .tablewrap th:nth-child(1),.tablewrap td:nth-child(1){width:58px}
-  .tablewrap th:nth-child(6),.tablewrap td:nth-child(6){width:auto}
-  .tablewrap th:nth-child(9),.tablewrap td:nth-child(9){width:48px;text-align:center}
-  .tablewrap th:nth-child(10),.tablewrap td:nth-child(10){width:68px;text-align:right}
-  .tablewrap th:nth-child(11),.tablewrap td:nth-child(11){width:64px;text-align:center}
-  .tablewrap th:nth-child(13),.tablewrap td:nth-child(13){width:76px;text-align:center}
-  .bet-game-cell strong{line-height:1.25;display:block}
+  .bets-tablewrap{overflow:visible}
+  .bets-tablewrap table{min-width:0!important;width:100%;table-layout:fixed}
+  .bets-tablewrap th,.bets-tablewrap td{padding:8px 5px;font-size:12px;white-space:normal;vertical-align:middle}
+  .bets-tablewrap th:nth-child(2),.bets-tablewrap td:nth-child(2),
+  .bets-tablewrap th:nth-child(3),.bets-tablewrap td:nth-child(3),
+  .bets-tablewrap th:nth-child(4),.bets-tablewrap td:nth-child(4),
+  .bets-tablewrap th:nth-child(5),.bets-tablewrap td:nth-child(5),
+  .bets-tablewrap th:nth-child(7),.bets-tablewrap td:nth-child(7),
+  .bets-tablewrap th:nth-child(8),.bets-tablewrap td:nth-child(8),
+  .bets-tablewrap th:nth-child(12),.bets-tablewrap td:nth-child(12){display:none}
+  .bets-tablewrap th:nth-child(1),.bets-tablewrap td:nth-child(1){width:72px}
+  .bets-tablewrap th:nth-child(6),.bets-tablewrap td:nth-child(6){width:auto}
+  .bets-tablewrap th:nth-child(9),.bets-tablewrap td:nth-child(9){width:48px;text-align:center}
+  .bets-tablewrap th:nth-child(10),.bets-tablewrap td:nth-child(10){width:72px;text-align:right}
+  .bets-tablewrap th:nth-child(11),.bets-tablewrap td:nth-child(11){width:64px;text-align:center}
+  .bets-tablewrap th:nth-child(13),.bets-tablewrap td:nth-child(13){width:72px;text-align:center}
+  .bet-game-cell{min-width:0}
+  .bet-game-cell strong{line-height:1.25;display:block;overflow-wrap:anywhere}
   .bet-game-cell span{display:block}
   .bet-type-badge{font-size:10px;padding:4px 6px}
   .bet-type-badge .material-symbols-outlined{font-size:14px;width:14px;height:14px}
-  .icon-btn{width:30px;height:30px;margin:0 1px}
-  .icon-btn .action-icon{font-size:18px!important;width:18px;height:18px;font-family:'Material Symbols Outlined'!important}
+  .bets-tablewrap .icon-btn{width:30px;height:30px;margin:0 1px}
+  .bets-tablewrap .action-svg{width:17px;height:17px}
 }
