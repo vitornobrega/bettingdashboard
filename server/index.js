@@ -74,9 +74,14 @@ const catalog={
 const competitionOrder=(a,b)=>{const aa=catalog[a.country_name]||[],bb=catalog[b.country_name]||[];const ia=aa.indexOf(a.name),ib=bb.indexOf(b.name);const pa=ia<0?9999:ia,pb=ib<0?9999:ib;return pa-pb||String(a.name||'').localeCompare(String(b.name||''),'pt-PT',{sensitivity:'base'})};const flags={
 'Portugal':'🇵🇹','Espanha':'🇪🇸','Inglaterra':'🏴','Alemanha':'🇩🇪','Itália':'🇮🇹','França':'🇫🇷','Países Baixos':'🇳🇱','Bélgica':'🇧🇪','Escócia':'🏴','Turquia':'🇹🇷','Grécia':'🇬🇷','Áustria':'🇦🇹','Suíça':'🇨🇭','Polónia':'🇵🇱','República Checa':'🇨🇿','Roménia':'🇷🇴','Croácia':'🇭🇷','Sérvia':'🇷🇸','Ucrânia':'🇺🇦','Noruega':'🇳🇴','Suécia':'🇸🇪','Dinamarca':'🇩🇰','Finlândia':'🇫🇮','Irlanda':'🇮🇪','Irlanda do Norte':'🇬🇧','Islândia':'🇮🇸','Brasil':'🇧🇷','Argentina':'🇦🇷','Colômbia':'🇨🇴','Chile':'🇨🇱','Uruguai':'🇺🇾','Paraguai':'🇵🇾','Equador':'🇪🇨','Peru':'🇵🇪','Bolívia':'🇧🇴','México':'🇲🇽','EUA':'🇺🇸','Canadá':'🇨🇦','Costa Rica':'🇨🇷','Japão':'🇯🇵','Coreia do Sul':'🇰🇷','China':'🇨🇳','Austrália':'🇦🇺','Nova Zelândia':'🇳🇿','África do Sul':'🇿🇦','Marrocos':'🇲🇦','Argélia':'🇩🇿','Tunísia':'🇹🇳','Egipto':'🇪🇬','Arábia Saudita':'🇸🇦','Emirados Árabes Unidos':'🇦🇪','Catar':'🇶🇦','Israel':'🇮🇱','Rússia':'🇷🇺','Internacional':'🌍'};
 const insCountry=db.prepare("INSERT OR IGNORE INTO countries(name,logo) VALUES (?,?)");
-const insComp=db.prepare("INSERT OR IGNORE INTO competitions(country_id,name) VALUES (?,?)");
-for(const [country,comps] of Object.entries(catalog)){insCountry.run(country,flags[country]||'');const row=db.prepare("SELECT id FROM countries WHERE name=?").get(country);for(const name of comps)insComp.run(row.id,name);}
+for(const [country] of Object.entries(catalog))insCountry.run(country,flags[country]||'');
 const ptCountry=db.prepare("SELECT id FROM countries WHERE name='Portugal'").get();const beCountry=db.prepare("SELECT id FROM countries WHERE name='Bélgica'").get();if(ptCountry&&beCountry){db.prepare("UPDATE competitions SET country_id=? WHERE country_id=? AND name IN ('Primeira Liga','Segunda Liga')").run(ptCountry.id,beCountry.id);}
+const catalogCleanupDone=db.prepare("SELECT value FROM app_settings WHERE key='competition_catalog_cleanup_v1'").get();
+if(!catalogCleanupDone){
+  const delCatalog=db.prepare("DELETE FROM competitions WHERE country_id=? AND name=?");
+  for(const [country,names] of Object.entries(catalog)){const row=db.prepare("SELECT id FROM countries WHERE name=?").get(country);if(row)for(const name of names)delCatalog.run(row.id,name);}
+  db.prepare("INSERT INTO app_settings(key,value) VALUES('competition_catalog_cleanup_v1','1') ON CONFLICT(key) DO UPDATE SET value=excluded.value").run();
+}
 const defaultMarkets=['1X2','Dupla Hipótese','Mais de 0.5 Golos','Mais de 1.5 Golos','Mais de 2.5 Golos','Menos de 0.5 Golos','Menos de 1.5 Golos','Menos de 2.5 Golos','Ambas Marcam','Handicap','Empate Anula','Resultado ao Intervalo'];
 for(const n of defaultMarkets)db.prepare("INSERT OR IGNORE INTO markets(name) VALUES(?)").run(n);
 
