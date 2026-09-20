@@ -426,3 +426,5 @@ input,select,textarea,button{max-width:100%}
  .config-nav{grid-template-columns:1fr 1fr;gap:9px}
  .config-nav-item{min-height:52px}
 }
+
+.competition-country-preview{margin-top:14px;padding:14px 16px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc}.competition-country-preview>b{display:block;margin-bottom:10px}.competition-country-chips{display:flex;flex-wrap:wrap;gap:7px}.competition-chip{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;font-size:12px;background:#fff;border:1px solid #cbd5e1}.competition-chip.existing{background:#f1f5f9}.competition-chip.available{border-style:dashed}.competition-add-form select:disabled,.competition-add-form input:disabled{opacity:.6}@media(max-width:800px){.competition-add-form{display:grid!important;grid-template-columns:1fr!important}.competition-country-chips{max-height:220px;overflow:auto}}
