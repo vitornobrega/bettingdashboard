@@ -118,7 +118,39 @@ app.get('/api/bets',(req,res)=>res.json(all('SELECT b.*,h.name house_name,h.logo
 app.post('/api/bets',(req,res)=>{try{const x=req.body||{};const stake=Number(x.stake);const odds=Number(x.odds);const combinedOdds=Number(x.combined_odds)||odds;const result=x.result||'pending';if(!x.datetime)return res.status(400).json({error:'Indica a data/hora.'});if(!Number.isFinite(stake)||stake<=0)return res.status(400).json({error:'Indica uma stake válida.'});if(!Number.isFinite(odds)||odds<=0)return res.status(400).json({error:'Indica uma odd válida.'});if(!x.house_id)return res.status(400).json({error:'Seleciona a casa de apostas.'});if(!x.country)return res.status(400).json({error:'Seleciona o país.'});if(!x.competition)return res.status(400).json({error:'Seleciona a competição.'});if(!x.market||x.market==='__new__')return res.status(400).json({error:'Seleciona um mercado válido.'});if(!x.selection)return res.status(400).json({error:'Indica a seleção.'});const isBonus=!!x.bonus;const profit=isBonus?(result==='win'?stake:0):(result==='win'?stake*((x.bet_type||'single')==='multiple'?combinedOdds:odds-1):result==='loss'?-stake:0);const r=run('INSERT INTO bets(user_id,datetime,house_id,country,competition,home_team,away_team,market,selection,odds,stake,units,bonus,result,profit,notes,bet_type,selections,combined_odds) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',req.user.id,x.datetime,Number(x.house_id),String(x.country),String(x.competition),x.home_team||'',x.away_team||'',String(x.market),String(x.selection),odds,stake,Number(x.units)||0,x.bonus?1:0,result,profit,x.notes||'',x.bet_type||'single',JSON.stringify(x.selections||[]),combinedOdds);res.json({ok:true,id:r.lastInsertRowid})}catch(e){console.error('POST /api/bets',e);res.status(500).json({error:'Não foi possível guardar a aposta: '+e.message})}});
 app.put('/api/bets/:id',(req,res)=>{const x=req.body;const stake=Number(x.stake)||0;const odds=Number(x.odds)||0;const combinedOdds=Number(x.combined_odds)||odds;const result=x.result||'pending';const isBonus=!!x.bonus;const profit=isBonus?(result==='win'?stake:0):(result==='win'?stake*((x.bet_type||'single')==='multiple'?combinedOdds:odds-1):result==='loss'?-stake:0);run('UPDATE bets SET datetime=?,house_id=?,country=?,competition=?,home_team=?,away_team=?,market=?,selection=?,odds=?,stake=?,units=?,bonus=?,result=?,profit=?,notes=?,bet_type=?,selections=?,combined_odds=? WHERE id=? AND user_id=?',x.datetime,x.house_id||null,x.country||'',x.competition||'',x.home_team||'',x.away_team||'',x.market||'',x.selection||'',odds,stake,Number(x.units)||0,x.bonus?1:0,result,profit,x.notes||'',x.bet_type||'single',JSON.stringify(x.selections||[]),combinedOdds,req.params.id,req.user.id);res.json({ok:true})});
 app.delete('/api/bets/:id',(req,res)=>{run('DELETE FROM bets WHERE id=? AND user_id=?',req.params.id,req.user.id);res.json({ok:true})});
-app.get('/api/transactions',(req,res)=>res.json(all('SELECT t.*,h.name house_name FROM transactions t LEFT JOIN houses h ON h.id=t.house_id AND h.user_id=t.user_id WHERE t.user_id=? ORDER BY datetime(t.datetime) DESC,t.id DESC',req.user.id)));app.get('/api/house-balances',(req,res)=>{const rows=all(`SELECT h.id,h.name,h.logo,COALESCE((SELECT t.amount FROM transactions t WHERE t.user_id=h.user_id AND t.house_id=h.id AND t.type='deposit' AND COALESCE(t.status,'completed')='completed' ORDER BY datetime(t.datetime),t.id LIMIT 1),0) initial_balance,COALESCE((SELECT SUM(CASE WHEN t.type='withdrawal' THEN -ABS(t.amount) ELSE t.amount END) FROM transactions t WHERE t.user_id=h.user_id AND t.house_id=h.id),0)+COALESCE((SELECT SUM(b.profit) FROM bets b WHERE b.user_id=h.user_id AND b.house_id=h.id),0) balance FROM houses h WHERE h.user_id=? ORDER BY h.name`,req.user.id);res.json(rows)});
+app.get('/api/transactions',(req,res)=>res.json(all('SELECT t.*,h.name house_name FROM transactions t LEFT JOIN houses h ON h.id=t.house_id AND h.user_id=t.user_id WHERE t.user_id=? ORDER BY datetime(t.datetime) DESC,t.id DESC',req.user.id)));app.get('/api/house-balances',(req,res)=>{const rows=all(`SELECT h.id,h.name,h.logo,
+COALESCE((
+  SELECT t.amount
+  FROM transactions t
+  WHERE t.user_id=h.user_id
+    AND t.house_id=h.id
+    AND t.type='deposit'
+    AND COALESCE(t.status,'completed')='completed'
+  ORDER BY datetime(t.datetime),t.id
+  LIMIT 1
+),0) initial_balance,
+COALESCE((
+  SELECT SUM(
+    CASE
+      WHEN t.type IN ('deposit','bonus','adjustment') THEN ABS(t.amount)
+      WHEN t.type='withdrawal' THEN -ABS(t.amount)
+      ELSE 0
+    END
+  )
+  FROM transactions t
+  WHERE t.user_id=h.user_id
+    AND t.house_id=h.id
+    AND COALESCE(t.status,'completed')='completed'
+),0)
++COALESCE((
+  SELECT SUM(b.profit)
+  FROM bets b
+  WHERE b.user_id=h.user_id
+    AND b.house_id=h.id
+),0) balance
+FROM houses h
+WHERE h.user_id=?
+ORDER BY h.name`,req.user.id);res.json(rows)});
 app.post('/api/transactions',(req,res)=>{const x=req.body;run('INSERT INTO transactions(user_id,house_id,type,amount,method,status,datetime,notes) VALUES(?,?,?,?,?,?,?,?)',req.user.id,x.house_id||null,x.type,x.amount,x.method||'',x.status||'completed',x.datetime,x.notes||'');res.json({ok:true})});app.put('/api/transactions/:id',(req,res)=>{const x=req.body;run('UPDATE transactions SET house_id=?,type=?,amount=?,method=?,status=?,datetime=?,notes=? WHERE id=? AND user_id=?',x.house_id||null,x.type,Number(x.amount)||0,x.method||'',x.status||'completed',x.datetime,x.notes||'',req.params.id,req.user.id);res.json({ok:true})});app.delete('/api/transactions/:id',(req,res)=>{run('DELETE FROM transactions WHERE id=? AND user_id=?',req.params.id,req.user.id);res.json({ok:true})});
 app.get('/api/bonuses',(req,res)=>res.json(all('SELECT b.*,h.name house_name FROM bonuses b LEFT JOIN houses h ON h.id=b.house_id AND h.user_id=b.user_id WHERE b.user_id=? ORDER BY deadline',req.user.id)));
 app.post('/api/bonuses',(req,res)=>{const x=req.body;run('INSERT INTO bonuses(user_id,house_id,week_start,deadline,required_events,min_odds,min_combined_odds,progress,status,notes) VALUES(?,?,?,?,?,?,?,?,?,?)',req.user.id,x.house_id,x.week_start,x.deadline,x.required_events,x.min_odds,x.min_combined_odds,x.progress||0,x.status||'open',x.notes||'');res.json({ok:true})});
