@@ -372,3 +372,10 @@ input,select,textarea,button{max-width:100%}
 @media(max-width:380px){
   .house-card-balances{grid-template-columns:1fr}
 }
+
+/* Hierarquia do menu de administração */
+.nav-parent{display:flex;align-items:center;gap:12px;width:100%;min-height:42px;padding:9px 12px;border-radius:9px;color:#cbd5e1;font-size:14px;font-weight:700;box-sizing:border-box}
+.nav-submenu{display:flex;flex-direction:column;gap:2px;margin:0 0 2px 18px;padding-left:10px;border-left:1px solid #374151}
+.nav-submenu button{min-height:36px;padding:7px 10px;font-size:13px}
+.nav-submenu .material-symbols-outlined{font-size:18px}
+@media(max-width:800px){.nav-parent{min-height:42px}.nav-submenu{margin-left:18px}}
