@@ -23,7 +23,7 @@ const catalog={
 'Itália':['Série A','Série B','Série C','Taça de Itália','Serie A Feminina'],
 'França':['Ligue 1','Ligue 2','National','Coupe de France','Division 1 Feminine'],
 'Países Baixos':['Eredivisie','Eerste Divisie','KNVB Beker','Eredivisie Feminina'],
-'Bélgica':['Primeira Liga','Segunda Liga','Taça da Bélgica','Liga Feminina'],
+'Bélgica':['Belgian Pro League','Challenger Pro League','Taça da Bélgica','Liga Feminina'],
 'Escócia':['Premiership','Championship','League One','League Two','Scottish Cup'],
 'Turquia':['Super Lig','1. Lig','Taça da Turquia','Supertaça'],
 'Grécia':['Super League','Super League 2','Taça da Grécia'],
@@ -76,6 +76,7 @@ const flags={
 const insCountry=db.prepare("INSERT OR IGNORE INTO countries(name,logo) VALUES (?,?)");
 const insComp=db.prepare("INSERT OR IGNORE INTO competitions(country_id,name) VALUES (?,?)");
 for(const [country,comps] of Object.entries(catalog)){insCountry.run(country,flags[country]||'');const row=db.prepare("SELECT id FROM countries WHERE name=?").get(country);for(const name of comps)insComp.run(row.id,name);}
+const ptCountry=db.prepare("SELECT id FROM countries WHERE name='Portugal'").get();const beCountry=db.prepare("SELECT id FROM countries WHERE name='Bélgica'").get();if(ptCountry&&beCountry){db.prepare("UPDATE competitions SET country_id=? WHERE country_id=? AND name IN ('Primeira Liga','Segunda Liga')").run(ptCountry.id,beCountry.id);}
 const defaultMarkets=['1X2','Dupla Hipótese','Mais de 0.5 Golos','Mais de 1.5 Golos','Mais de 2.5 Golos','Menos de 0.5 Golos','Menos de 1.5 Golos','Menos de 2.5 Golos','Ambas Marcam','Handicap','Empate Anula','Resultado ao Intervalo'];
 for(const n of defaultMarkets)db.prepare("INSERT OR IGNORE INTO markets(name) VALUES(?)").run(n);
 
