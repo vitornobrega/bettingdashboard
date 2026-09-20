@@ -244,3 +244,54 @@ html,body,#root{width:100%;max-width:100%;overflow-x:hidden}
   .chart{height:210px;}
   .house-card{padding:12px;}
 }
+
+
+/* Correção definitiva do corte no ecrã pequeno: cabeçalho, filtros, cards e gráfico passam a respeitar 100% da largura disponível. */
+.dashboard-page{width:100%;min-width:0;overflow:hidden}
+.dashboard-page .dashboard-head{min-width:0}
+.dashboard-page .filters{min-width:0}
+.dashboard-page .chart{width:100%;min-width:0;overflow:hidden}
+@media(max-width:800px){
+  .app-main{width:100%;min-width:0;overflow-x:hidden;}
+  .dashboard-page{width:100%;max-width:100%;padding:0;overflow:hidden;}
+  .dashboard-page .dashboard-head{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .dashboard-page .dashboard-head>div:first-child{min-width:0;}
+  .dashboard-page .dashboard-head h1{font-size:26px;margin-bottom:3px;}
+  .dashboard-page .filters{
+    width:100%;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:8px;
+  }
+  .dashboard-page .filters select{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    padding:9px 8px;
+  }
+  .dashboard-page .cards{
+    width:100%;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  .dashboard-page .card{min-width:0;padding:12px;}
+  .dashboard-page .card strong{font-size:21px;overflow-wrap:anywhere;}
+  .dashboard-page section{width:100%;max-width:100%;min-width:0;padding:13px;margin-bottom:10px;}
+  .dashboard-page .section-head{min-width:0;}
+  .dashboard-page .section-head>div{min-width:0;}
+  .dashboard-page .section-head h2{font-size:17px;}
+  .dashboard-page .chart{height:220px;}
+}
+@media(max-width:380px){
+  .dashboard-page .filters{grid-template-columns:1fr;}
+  .dashboard-page .cards{grid-template-columns:1fr 1fr;}
+  .dashboard-page .card strong{font-size:19px;}
+  .dashboard-page .chart{height:200px;}
+}
