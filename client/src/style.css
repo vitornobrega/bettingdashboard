@@ -190,3 +190,12 @@ html[data-theme='dark'] .modal-card{background:#1f2937;border-color:#374151}
 html[data-theme='dark'] .modal-head{border-color:#374151}
 html[data-theme='dark'] .modal-close,html[data-theme='dark'] .secondary-btn{background:#111827;color:#e5e7eb;border-color:#4b5563}
 @media(max-width:600px){.modal-backdrop{padding:10px;align-items:flex-end}.modal-card{max-height:94vh;border-radius:16px 16px 0 0;padding:16px}.modal-head{margin-bottom:12px}.form-actions{flex-direction:column-reverse;align-items:stretch}.form-actions button{width:100%}}
+
+
+/* Ajuste global de largura no desktop: evita overflow horizontal causado por grids e campos */
+html,body,#root{width:100%;max-width:100%;overflow-x:hidden}
+*,*::before,*::after{box-sizing:border-box}
+.app-shell,.app-main,.dashboard-page,main,section{min-width:0;max-width:100%}
+.grid>*,.analysis-filters>*,.selection-row>*,.multi-add-row>*{min-width:0}
+.grid input,.grid select,.grid textarea,.analysis-filters input,.analysis-filters select,.selection-row input{width:100%;max-width:100%;box-sizing:border-box}
+.houses-grid,.cards,.house-card,.modal-card,.tablewrap{min-width:0;max-width:100%}
