@@ -207,3 +207,40 @@ html,body,#root{width:100%;max-width:100%;overflow-x:hidden}
   .app-shell{min-height:100vh;height:100vh;overflow:hidden;}
   .app-main{height:100vh;min-height:0;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;}
 }
+
+
+/* Otimização de densidade no desktop: aproveita melhor a altura do monitor sem alterar o mobile. */
+@media(min-width:1200px){
+  .app-main{padding:18px 24px;}
+  .dashboard-page{padding:2px;}
+  .dashboard-head{margin-bottom:12px;gap:12px;}
+  section{padding:16px;margin-bottom:12px;border-radius:12px;}
+  .cards{gap:10px;margin-bottom:12px;}
+  .card{padding:14px;border-radius:12px;}
+  .card strong{font-size:24px;margin-top:5px;}
+  .grid{gap:10px;}
+  .house-balance-grid{gap:10px;}
+  .balance-card{padding:12px;}
+  .houses-grid{gap:12px;}
+  .house-card{padding:15px;}
+  .house-card-head{margin-bottom:12px;}
+  .house-card-balances{gap:8px;margin-bottom:9px;}
+  .house-card-balances>div{padding:10px;}
+  .house-card-details{gap:8px;padding-top:9px;}
+  .house-card-conditions{margin-top:9px;padding-top:9px;}
+  .trend-label{margin-top:5px;}
+  .tablewrap table{font-size:12px;}
+  th,td{padding:8px;}
+  .chart{height:240px;}
+}
+
+@media(min-width:801px) and (max-height:800px){
+  .app-main{padding-top:12px;padding-bottom:12px;}
+  .dashboard-head{margin-bottom:8px;}
+  section{padding:13px;margin-bottom:9px;}
+  .cards{margin-bottom:9px;gap:8px;}
+  .card{padding:11px;}
+  .card strong{font-size:22px;}
+  .chart{height:210px;}
+  .house-card{padding:12px;}
+}
