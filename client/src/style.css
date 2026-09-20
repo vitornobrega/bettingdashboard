@@ -174,3 +174,19 @@ html[data-theme='dark'] .house-card-balances>div{background:#111827;border-color
 html[data-theme='dark'] .house-card-details,html[data-theme='dark'] .house-card-conditions{border-color:#374151}
 html[data-theme='dark'] .house-card-conditions p{color:#cbd5e1}
 @media(max-width:700px){.houses-grid{grid-template-columns:1fr}.house-card{padding:15px}.house-card-balances strong{font-size:18px}}
+
+
+/* Popups de edição */
+.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:24px;z-index:100;backdrop-filter:blur(3px)}
+.modal-card{width:min(900px,100%);max-height:90vh;overflow:auto;background:#fff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 24px 70px rgba(15,23,42,.28);padding:22px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #eef2f7}
+.modal-head h2{margin:0;font-size:20px}
+.modal-close{width:34px;height:34px;border:1px solid #e2e8f0;border-radius:9px;background:#fff;color:#475569;font-size:24px;line-height:1;cursor:pointer}
+.modal-close:hover{background:#f8fafc;color:#111827}
+.form-actions{display:flex;align-items:center;gap:10px;margin-top:16px}
+.secondary-btn{border:1px solid #d1d5db;background:#fff;color:#374151;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:600}
+.secondary-btn:hover{background:#f8fafc;border-color:#9ca3af}
+html[data-theme='dark'] .modal-card{background:#1f2937;border-color:#374151}
+html[data-theme='dark'] .modal-head{border-color:#374151}
+html[data-theme='dark'] .modal-close,html[data-theme='dark'] .secondary-btn{background:#111827;color:#e5e7eb;border-color:#4b5563}
+@media(max-width:600px){.modal-backdrop{padding:10px;align-items:flex-end}.modal-card{max-height:94vh;border-radius:16px 16px 0 0;padding:16px}.modal-head{margin-bottom:12px}.form-actions{flex-direction:column-reverse;align-items:stretch}.form-actions button{width:100%}}
