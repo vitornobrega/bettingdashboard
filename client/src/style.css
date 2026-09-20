@@ -337,3 +337,38 @@ input,select,textarea,button{max-width:100%}
 @media(max-width:380px){
   .house-card-balances{grid-template-columns:1fr}
 }
+
+/* Correção final do layout da listagem de casas de apostas */
+.houses-section{padding:0;background:transparent;border:0;overflow:visible}
+.houses-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;width:100%}
+.house-card{
+  display:block;
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+.house-card-head{width:100%;min-width:0}
+.house-card-brand{flex:1;min-width:0}
+.house-card-brand>div{min-width:0;overflow:hidden}
+.house-card-balances{width:100%;grid-template-columns:repeat(2,minmax(0,1fr))}
+.house-card-balances>div{min-width:0;overflow:hidden}
+.house-card-balances strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.house-card-details{width:100%;grid-template-columns:repeat(2,minmax(0,1fr))}
+.house-card-conditions{width:100%;min-width:0}
+.house-card-conditions p{overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:1100px){
+  .houses-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .houses-grid{grid-template-columns:1fr;gap:12px}
+  .house-card{padding:14px}
+  .house-card-head{margin-bottom:14px}
+  .house-card-logo{width:40px;height:40px}
+  .house-card-balances{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .house-card-balances>div{padding:11px}
+  .house-card-balances strong{font-size:17px}
+}
+@media(max-width:380px){
+  .house-card-balances{grid-template-columns:1fr}
+}
