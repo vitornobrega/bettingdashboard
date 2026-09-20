@@ -378,3 +378,17 @@ input,select,textarea,button{max-width:100%}
 .nav-submenu{display:flex;flex-direction:column;gap:2px;margin:0 0 2px 18px;padding-left:10px;border-left:1px solid #374151}
 .nav-submenu button{min-height:36px;padding:7px 10px;font-size:13px}
 .nav-submenu .material-symbols-outlined{font-size:18px}
+
+/* Menu e navegação de configuração */
+.config-nav{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:4px}
+.config-nav-item{position:relative;min-height:54px;padding:11px 14px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;box-shadow:0 2px 7px rgba(15,23,42,.04);transition:all .18s ease}
+.config-nav-item .material-symbols-outlined{font-size:21px}
+.config-nav-item:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(15,23,42,.08);border-color:#cbd5e1}
+.config-nav-item.active{box-shadow:0 5px 16px rgba(37,99,235,.12)}
+.nav-parent{margin-top:4px;padding:8px 12px;color:#94a3b8;font-size:11px;letter-spacing:.09em;text-transform:uppercase;opacity:.9}
+.nav-parent .material-symbols-outlined{font-size:19px}
+.nav-submenu{margin:1px 0 4px 14px;padding:4px 0 4px 9px;border-left:2px solid #334155;gap:3px}
+.nav-submenu button{min-height:36px;padding:7px 10px;border-radius:8px;font-size:13px;color:#94a3b8}
+.nav-submenu button:hover,.nav-submenu button.active{background:#334155;color:#fff}
+.nav-submenu button .material-symbols-outlined{font-size:18px}
+@media(max-width:700px){.config-nav{grid-template-columns:1fr 1fr}.config-nav-item{min-height:48px}}
