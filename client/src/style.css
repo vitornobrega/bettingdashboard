@@ -316,3 +316,24 @@ input,select,textarea,button{max-width:100%}
   .app-main>*{width:100%;max-width:100%;min-width:0}
   section{overflow:hidden}
 }
+
+
+/* Ícones: garantir renderização consistente também em mobile vertical. */
+.history-type-svg,.action-svg{display:inline-block!important;visibility:visible!important;opacity:1!important;flex:0 0 auto;overflow:visible}
+.history-type-svg{width:19px!important;height:19px!important;min-width:19px!important;min-height:19px!important}
+.action-svg{width:18px!important;height:18px!important;min-width:18px!important;min-height:18px!important}
+.history-type{display:inline-flex!important;align-items:center!important;justify-content:center!important}
+.icon-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important}
+@media(max-width:600px){
+  .bets-tablewrap .history-type-svg{width:18px!important;height:18px!important;min-width:18px!important;min-height:18px!important}
+  .bets-tablewrap .action-svg{width:17px!important;height:17px!important;min-width:17px!important;min-height:17px!important}
+  .bets-tablewrap .history-type{min-width:30px!important}
+}
+
+/* Listagem de casas: saldos sempre visíveis e sem corte em ecrãs estreitos. */
+.house-card-balances{min-width:0}
+.house-card-balances>div{min-width:0}
+.house-card-balances strong{overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:380px){
+  .house-card-balances{grid-template-columns:1fr}
+}
