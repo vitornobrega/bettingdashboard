@@ -1,5 +1,5 @@
 const express=require('express');const Database=require('better-sqlite3');const path=require('path');const fs=require('fs');const crypto=require('crypto');
-const app=express();app.use(express.json({limit:'1mb'}));const dataDir=process.env.DATA_DIR||'/app/data';fs.mkdirSync(dataDir,{recursive:true});const db=new Database(path.join(dataDir,'betting.db'));db.pragma('journal_mode = WAL');try{db.exec(`CREATE INDEX IF NOT EXISTS idx_bets_user_datetime ON bets(user_id,datetime);CREATE INDEX IF NOT EXISTS idx_bets_user_house ON bets(user_id,house_id);CREATE INDEX IF NOT EXISTS idx_transactions_user_datetime ON transactions(user_id,datetime);CREATE INDEX IF NOT EXISTS idx_transactions_user_house ON transactions(user_id,house_id);CREATE INDEX IF NOT EXISTS idx_competitions_user_country ON competitions(user_id,country_id);CREATE INDEX IF NOT EXISTS idx_countries_user ON countries(user_id);`)}catch(e){console.error(e)}
+const app=express();app.use(express.json({limit:'1mb'}));const dataDir=process.env.DATA_DIR||'/app/data';fs.mkdirSync(dataDir,{recursive:true});const db=new Database(path.join(dataDir,'betting.db'));db.pragma('journal_mode = WAL');
 try{db.exec("ALTER TABLE houses ADD COLUMN bonus_weekly INTEGER NOT NULL DEFAULT 0")}catch(e){if(!String(e.message).includes('duplicate column name'))throw e}
 db.exec(`CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,email TEXT NOT NULL UNIQUE,password_hash TEXT NOT NULL,role TEXT NOT NULL DEFAULT 'user',active INTEGER NOT NULL DEFAULT 1,language TEXT NOT NULL DEFAULT 'pt',currency TEXT NOT NULL DEFAULT 'EUR',created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL,expires_at TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);
@@ -74,7 +74,7 @@ const catalog={
 const competitionOrder=(a,b)=>{const aa=catalog[a.country_name]||[],bb=catalog[b.country_name]||[];const ia=aa.indexOf(a.name),ib=bb.indexOf(b.name);const pa=ia<0?9999:ia,pb=ib<0?9999:ib;return pa-pb||String(a.name||'').localeCompare(String(b.name||''),'pt-PT',{sensitivity:'base'})};const flags={
 'Portugal':'🇵🇹','Espanha':'🇪🇸','Inglaterra':'🏴','Alemanha':'🇩🇪','Itália':'🇮🇹','França':'🇫🇷','Países Baixos':'🇳🇱','Bélgica':'🇧🇪','Escócia':'🏴','Turquia':'🇹🇷','Grécia':'🇬🇷','Áustria':'🇦🇹','Suíça':'🇨🇭','Polónia':'🇵🇱','República Checa':'🇨🇿','Roménia':'🇷🇴','Croácia':'🇭🇷','Sérvia':'🇷🇸','Ucrânia':'🇺🇦','Noruega':'🇳🇴','Suécia':'🇸🇪','Dinamarca':'🇩🇰','Finlândia':'🇫🇮','Irlanda':'🇮🇪','Irlanda do Norte':'🇬🇧','Islândia':'🇮🇸','Brasil':'🇧🇷','Argentina':'🇦🇷','Colômbia':'🇨🇴','Chile':'🇨🇱','Uruguai':'🇺🇾','Paraguai':'🇵🇾','Equador':'🇪🇨','Peru':'🇵🇪','Bolívia':'🇧🇴','México':'🇲🇽','EUA':'🇺🇸','Canadá':'🇨🇦','Costa Rica':'🇨🇷','Japão':'🇯🇵','Coreia do Sul':'🇰🇷','China':'🇨🇳','Austrália':'🇦🇺','Nova Zelândia':'🇳🇿','África do Sul':'🇿🇦','Marrocos':'🇲🇦','Argélia':'🇩🇿','Tunísia':'🇹🇳','Egipto':'🇪🇬','Arábia Saudita':'🇸🇦','Emirados Árabes Unidos':'🇦🇪','Catar':'🇶🇦','Israel':'🇮🇱','Rússia':'🇷🇺','Internacional':'🌍'};
 try{db.exec("ALTER TABLE countries ADD COLUMN user_id INTEGER REFERENCES users(id)")}catch(e){if(!String(e.message).includes('duplicate column name'))throw e}
-try{db.exec("ALTER TABLE competitions ADD COLUMN user_id INTEGER REFERENCES users(id)")}catch(e){if(!String(e.message).includes('duplicate column name'))throw e}
+try{db.exec("ALTER TABLE competitions ADD COLUMN user_id INTEGER REFERENCES users(id)")}catch(e){if(!String(e.message).includes('duplicate column name'))throw e}try{db.exec(`CREATE INDEX IF NOT EXISTS idx_bets_user_datetime ON bets(user_id,datetime);CREATE INDEX IF NOT EXISTS idx_bets_user_house ON bets(user_id,house_id);CREATE INDEX IF NOT EXISTS idx_transactions_user_datetime ON transactions(user_id,datetime);CREATE INDEX IF NOT EXISTS idx_transactions_user_house ON transactions(user_id,house_id);CREATE INDEX IF NOT EXISTS idx_competitions_user_country ON competitions(user_id,country_id);CREATE INDEX IF NOT EXISTS idx_countries_user ON countries(user_id);`)}catch(e){console.error(e)}
 const insCountry=db.prepare("INSERT OR IGNORE INTO countries(name,logo) VALUES (?,?)");
 for(const [country] of Object.entries(catalog))insCountry.run(country,flags[country]||'');
 const ptCountry=db.prepare("SELECT id FROM countries WHERE name='Portugal'").get();const beCountry=db.prepare("SELECT id FROM countries WHERE name='Bélgica'").get();if(ptCountry&&beCountry){db.prepare("UPDATE competitions SET country_id=? WHERE country_id=? AND name IN ('Primeira Liga','Segunda Liga')").run(ptCountry.id,beCountry.id);}
@@ -86,11 +86,11 @@ if(!catalogCleanupDone){
 }
 const ownerUser=db.prepare("SELECT id FROM users WHERE role='admin' ORDER BY id LIMIT 1").get();
 if(ownerUser){
-  for(const country of all('SELECT id,name,user_id FROM countries')){
+  for(const country of db.prepare('SELECT id,name,user_id FROM countries').all()){
     if(Object.prototype.hasOwnProperty.call(catalog,country.name))db.prepare('UPDATE countries SET user_id=NULL WHERE id=?').run(country.id);
     else if(country.user_id==null)db.prepare('UPDATE countries SET user_id=? WHERE id=?').run(ownerUser.id,country.id);
   }
-  for(const comp of all('SELECT c.id,c.name,c.user_id,p.name country_name FROM competitions c JOIN countries p ON p.id=c.country_id')){
+  for(const comp of db.prepare('SELECT c.id,c.name,c.user_id,p.name country_name FROM competitions c JOIN countries p ON p.id=c.country_id').all()){
     const isCatalog=Array.isArray(catalog[comp.country_name])&&catalog[comp.country_name].includes(comp.name);
     if(isCatalog)db.prepare('UPDATE competitions SET user_id=NULL WHERE id=?').run(comp.id);
     else if(comp.user_id==null)db.prepare('UPDATE competitions SET user_id=? WHERE id=?').run(ownerUser.id,comp.id);
