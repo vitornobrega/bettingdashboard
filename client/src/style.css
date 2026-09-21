@@ -487,3 +487,14 @@ input,select,textarea,button{max-width:100%}
 .side-menu.collapsed .side-nav {
   overflow-x: hidden;
 }
+
+
+/* Controlo visual da stake e alerta de limite. */
+.stake-control{min-width:0}
+.stake-control>label{margin:0}
+.stake-limit-info{margin-top:6px;color:#64748b;font-size:12px;line-height:1.4}
+.stake-warning{display:flex;align-items:flex-start;gap:8px;margin-top:8px;padding:10px 12px;border:1px solid #f59e0b;border-radius:9px;background:#fffbeb;color:#92400e;font-size:12px;line-height:1.4}
+.stake-warning .material-symbols-outlined{font-size:18px;flex:0 0 18px;color:#d97706}
+html[data-theme='dark'] .stake-limit-info{color:#94a3b8}
+html[data-theme='dark'] .stake-warning{background:#422006;border-color:#92400e;color:#fde68a}
+html[data-theme='dark'] .stake-warning .material-symbols-outlined{color:#fbbf24}
