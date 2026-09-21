@@ -428,3 +428,62 @@ input,select,textarea,button{max-width:100%}
 }
 
 .competition-country-preview{margin-top:14px;padding:14px 16px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc}.competition-country-preview>b{display:block;margin-bottom:10px}.competition-country-chips{display:flex;flex-wrap:wrap;gap:7px}.competition-chip{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;font-size:12px;background:#fff;border:1px solid #cbd5e1}.competition-chip.existing{background:#f1f5f9}.competition-chip.available{border-style:dashed}.competition-add-form select:disabled,.competition-add-form input:disabled{opacity:.6}@media(max-width:800px){.competition-add-form{display:grid!important;grid-template-columns:1fr!important}.competition-country-chips{max-height:220px;overflow:auto}}
+
+
+/* Sidebar desktop: remove the nested browser scrollbars and keep the menu inside its own column. */
+@media (min-width: 801px) {
+  .side-menu {
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .side-nav {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .side-nav::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .nav-section,
+  .nav-section > button,
+  .nav-parent {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .side-nav button {
+    overflow: hidden;
+  }
+
+  .side-nav button > span:not(.material-symbols-outlined) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .side-bottom {
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+
+  .side-bottom a,
+  .side-bottom button {
+    min-width: 0;
+    overflow: hidden;
+  }
+}
+
+/* The collapsed rail should never create a horizontal overflow either. */
+.side-menu.collapsed .side-nav {
+  overflow-x: hidden;
+}
