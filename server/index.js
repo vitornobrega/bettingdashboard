@@ -146,6 +146,40 @@ app.post('/api/teams/seed-popular',async(req,res)=>{
   }
   res.json({ok:true,count:results.length,teams:results});
 });
+const popularLeagues=[
+  {id:4344,name:'Primeira Liga',country:'Portugal'},
+  {id:4328,name:'English Premier League',country:'England'},
+  {id:4335,name:'Spanish La Liga',country:'Spain'},
+  {id:4331,name:'German Bundesliga',country:'Germany'},
+  {id:4334,name:'French Ligue 1',country:'France'},
+  {id:4332,name:'Italian Serie A',country:'Italy'},
+  {id:4337,name:'Dutch Eredivisie',country:'Netherlands'},
+  {id:4338,name:'Belgian Pro League',country:'Belgium'},
+  {id:4406,name:'Argentine Primera Division',country:'Argentina'},
+  {id:4351,name:'Brazilian Serie A',country:'Brazil'}
+];
+async function syncTeamRecord(t){
+  if(!t?.strTeam)return null;
+  const name=String(t.strTeam).trim(),country=String(t.strCountry||'').trim(),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||'');
+  const existing=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) LIMIT 1').get(name);
+  if(existing){
+    db.prepare('UPDATE teams SET country=CASE WHEN ?<>\'\' THEN ? ELSE country END,logo=CASE WHEN ?<>\'\' THEN ? ELSE logo END,external_id=CASE WHEN ?<>\'\' THEN ? ELSE external_id END,source=CASE WHEN source=\'manual\' THEN \'thesportsdb\' ELSE source END WHERE id=?').run(country,country,logo,logo,external_id,external_id,existing.id);
+    return {name,updated:true};
+  }
+  const i=db.prepare('INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(NULL,?,?,?,?,?,\'thesportsdb\')').run(name,country,'club',logo,external_id);
+  return {name,added:true,id:i.lastInsertRowid};
+}
+app.post('/api/teams/seed-leagues',async(req,res)=>{
+  const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
+  for(const league of popularLeagues){
+    try{
+      const u=`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/search_all_teams.php?l=${encodeURIComponent(league.name.replaceAll(' ','_'))}`;
+      const r=await fetch(u); if(!r.ok)continue; const d=await r.json();
+      for(const t of (d.teams||[])){const x=await syncTeamRecord({...t,strCountry:t.strCountry||league.country});if(x)results.push({...x,league:league.name});}
+    }catch(e){}
+  }
+  res.json({ok:true,count:results.length,teams:results});
+});
 app.get('/api/teams/search',async(req,res)=>{const q=String(req.query.q||'').trim();if(q.length<2)return res.json([]);try{const r=await fetch(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(process.env.THESPORTSDB_API_KEY||'123')}/searchteams.php?t=${encodeURIComponent(q)}`);if(!r.ok)throw new Error('Fonte externa indisponível');const d=await r.json();res.json((d.teams||[]).filter(t=>String(t.strSport||'').toLowerCase()==='soccer').slice(0,20).map(t=>({external_id:String(t.idTeam||''),name:t.strTeam||'',country:t.strCountry||'',team_type:String(t.strTeam||'').toLowerCase().includes('national')?'national':'club',logo:t.strBadge||t.strLogo||'',source:'thesportsdb'})))}catch(e){res.status(502).json({error:'Não foi possível pesquisar a base de equipas online.'})}});
 app.post('/api/teams',(req,res)=>{const name=String(req.body.name||'').trim(),country=String(req.body.country||'').trim(),team_type=['club','club_reserve','national','national_youth','women'].includes(String(req.body.team_type))?String(req.body.team_type):'club',logo=String(req.body.logo||'').trim(),external_id=String(req.body.external_id||'').trim(),source=String(req.body.source||'manual').trim();if(!name)return res.status(400).json({error:'Indica o nome da equipa.'});const existing=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY CASE WHEN user_id IS NULL THEN 0 ELSE 1 END,id LIMIT 1').get(name);if(existing)return res.json(existing);try{const i=db.prepare('INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(?,?,?,?,?,?,?)').run(req.user.id,name,country,team_type,logo,external_id,source);res.json(db.prepare('SELECT * FROM teams WHERE id=?').get(i.lastInsertRowid))}catch(e){if(String(e.message).includes('UNIQUE')){const row=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY id LIMIT 1').get(name);return res.json(row)}res.status(500).json({error:'Não foi possível criar a equipa.'})}});
 app.put('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const row=db.prepare('SELECT * FROM teams WHERE id=? AND user_id=?').get(id,req.user.id);if(!row)return res.status(404).json({error:'Equipa não encontrada.'});const name=String(req.body.name||row.name).trim();if(!name)return res.status(400).json({error:'Indica o nome da equipa.'});db.prepare('UPDATE teams SET name=?,country=?,team_type=?,logo=? WHERE id=? AND user_id=?').run(name,String(req.body.country||row.country||''),String(req.body.team_type||row.team_type),String(req.body.logo||row.logo||''),id,req.user.id);res.json(db.prepare('SELECT * FROM teams WHERE id=?').get(id))});
