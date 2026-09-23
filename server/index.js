@@ -131,7 +131,7 @@ app.delete('/api/admin/countries/:id',requireAdmin,(req,res)=>{run('DELETE FROM 
 app.get('/api/countries',(req,res)=>res.json(all('SELECT * FROM countries WHERE user_id IS NULL OR user_id=? ORDER BY name',req.user.id)));app.get('/api/teams',(req,res)=>{const q=String(req.query.search||'').trim().toLowerCase();const like='%'+q+'%';const rows=all(q?"SELECT * FROM teams WHERE (user_id IS NULL OR user_id=?) AND (lower(name) LIKE ? OR lower(COALESCE(country,'')) LIKE ?) ORDER BY name LIMIT 250":"SELECT * FROM teams WHERE user_id IS NULL OR user_id=? ORDER BY name LIMIT 250",...(q?[req.user.id,like,like]:[req.user.id]));res.json(rows)});
 
 // Curated starter catalogue. Logos are fetched from TheSportsDB on demand through /api/teams/seed-popular.
-const popularTeamIds=[134108,135708,134114,133604,133602,133613,133612,133610,133738,133739,133650,133714,133676,133681,133667,134287,134465,135156,135171];
+const popularTeamIds=[134108,135708,134114,133604,133602,133613,133612,133610,133738,133739,133650,133664,133714,133729,133676,133681,133667,133670,134287,134465,135156,135171];
 app.post('/api/teams/seed-popular',async(req,res)=>{
   const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
   for(const id of popularTeamIds){
