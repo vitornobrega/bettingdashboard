@@ -128,7 +128,7 @@ app.get('/api/admin/countries',requireAdmin,(req,res)=>res.json(all('SELECT * FR
 app.post('/api/admin/countries',requireAdmin,(req,res)=>{try{run('INSERT INTO countries(name,logo) VALUES(?,?)',String(req.body.name||'').trim(),req.body.logo||'');res.json({ok:true})}catch(e){res.status(400).json({error:'País já existe.'})}});
 app.put('/api/admin/countries/:id',requireAdmin,(req,res)=>{run('UPDATE countries SET name=?,logo=? WHERE id=?',req.body.name,req.body.logo||'',req.params.id);res.json({ok:true})});
 app.delete('/api/admin/countries/:id',requireAdmin,(req,res)=>{run('DELETE FROM countries WHERE id=?',req.params.id);res.json({ok:true})});
-app.get('/api/countries',(req,res)=>res.json(all('SELECT * FROM countries WHERE user_id IS NULL OR user_id=? ORDER BY name',req.user.id)));app.get('/api/teams',(req,res)=>{const q=String(req.query.search||'').trim().toLowerCase();const like='%'+q+'%';const rows=all(q?"SELECT * FROM teams WHERE (user_id IS NULL OR user_id=?) AND (lower(name) LIKE ? OR lower(COALESCE(country,'')) LIKE ?) ORDER BY name LIMIT 250":"SELECT * FROM teams WHERE user_id IS NULL OR user_id=? ORDER BY name LIMIT 250",...(q?[req.user.id,like,like]:[req.user.id]));res.json(rows)});
+app.get('/api/countries',(req,res)=>res.json(all('SELECT * FROM countries WHERE user_id IS NULL OR user_id=? ORDER BY name',req.user.id)));app.get('/api/teams',(req,res)=>{const q=String(req.query.search||'').trim().toLowerCase(),type=String(req.query.type||'').trim(),country=String(req.query.country||'').trim(),like='%'+q+'%';const where=['(user_id IS NULL OR user_id=?)'],args=[req.user.id];if(q){where.push('(lower(name) LIKE ? OR lower(COALESCE(country,\'\')) LIKE ?)');args.push(like,like)}if(type){where.push('team_type=?');args.push(type)}if(country){where.push('lower(COALESCE(country,\'\'))=lower(?)');args.push(country)}const limit=Math.min(Math.max(Number(req.query.limit)||1000,1),1000);const rows=all(`SELECT * FROM teams WHERE ${where.join(' AND ')} ORDER BY name LIMIT ${limit}`,...args);res.json(rows)});
 
 // Curated starter catalogue. Logos are fetched from TheSportsDB on demand through /api/teams/seed-popular.
 const popularTeamIds=[134108,135708,134114,133604,133602,133613,133612,133610,133738,133739,133650,133664,133714,133729,133676,133681,133667,133670,134287,134465,135156,135171];
@@ -175,7 +175,36 @@ app.post('/api/teams/seed-leagues',async(req,res)=>{
     try{
       const u=`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/search_all_teams.php?l=${encodeURIComponent(league.name.replaceAll(' ','_'))}`;
       const r=await fetch(u); if(!r.ok)continue; const d=await r.json();
+      for(const t of (d.teams||[])){const x=await syncTeamRecord({...t,strCountry:t.strCountry||league.country});
+const secondDivisionLeagues=[
+  {name:'Liga Portugal 2',country:'Portugal'},
+  {name:'English League Championship',country:'England'},
+  {name:'Spanish Segunda Division',country:'Spain'},
+  {name:'German 2. Bundesliga',country:'Germany'},
+  {name:'Italian Serie B',country:'Italy'},
+  {name:'French Ligue 2',country:'France'},
+  {name:'Dutch Eerste Divisie',country:'Netherlands'},
+  {name:'Belgian Challenger Pro League',country:'Belgium'},
+  {name:'Scottish Championship',country:'Scotland'},
+  {name:'Turkish 1. Lig',country:'Turkey'},
+  {name:'Greek Super League 2',country:'Greece'},
+  {name:'Austrian 2. Liga',country:'Austria'},
+  {name:'Swiss Challenge League',country:'Switzerland'},
+  {name:'Polish 1. Liga',country:'Poland'},
+  {name:'Czech National Football League',country:'Czech Republic'}
+];
+app.post('/api/teams/seed-second-divisions',async(req,res)=>{
+  const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
+  for(const league of secondDivisionLeagues){
+    try{
+      const u=`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/search_all_teams.php?l=${encodeURIComponent(league.name.replaceAll(' ','_'))}`;
+      const r=await fetch(u);if(!r.ok)continue;const d=await r.json();
       for(const t of (d.teams||[])){const x=await syncTeamRecord({...t,strCountry:t.strCountry||league.country});if(x)results.push({...x,league:league.name});}
+    }catch(e){}
+  }
+  res.json({ok:true,count:results.length,teams:results});
+});
+if(x)results.push({...x,league:league.name});}
     }catch(e){}
   }
   res.json({ok:true,count:results.length,teams:results});
