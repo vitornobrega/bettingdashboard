@@ -224,7 +224,28 @@ const popularLeagues=[
   {id:4346,name:'MLS',country:'United States'},
   {id:4350,name:'Mexican Primera Division',country:'Mexico'}
 ];
-async function syncTeamRecord(t){
+async const teamCanonicalAliases={
+  'Benfica':['Benfica','SL Benfica','SLB','Benfica B'],
+  'FC Porto':['FC Porto','Porto','F.C. Porto','FC Porto B']
+};
+function normalizeTeamCatalog(){
+  const tx=db.transaction(()=>{
+    for(const [canonical,aliases] of Object.entries(teamCanonicalAliases)){
+      const placeholders=aliases.map(()=>'?').join(',');
+      const rows=db.prepare(`SELECT * FROM teams WHERE user_id IS NULL AND lower(trim(name)) IN (${placeholders}) ORDER BY CASE WHEN lower(trim(name))=lower(?) THEN 0 ELSE 1 END,id`).all(...aliases,canonical);
+      if(!rows.length)continue;
+      const target=rows.find(r=>r.name.trim().toLowerCase()===canonical.toLowerCase())||rows.find(r=>String(r.logo||'').trim())||rows[0];
+      const logo=rows.find(r=>String(r.logo||'').trim())?.logo||target.logo||'';
+      const country=rows.find(r=>String(r.country||'').trim())?.country||target.country||'';
+      const externalId=rows.find(r=>String(r.external_id||'').trim())?.external_id||target.external_id||'';
+      db.prepare('UPDATE teams SET name=?,country=?,logo=?,external_id=?,source=CASE WHEN source=\'manual\' THEN \'thesportsdb\' ELSE source END WHERE id=?').run(canonical,country,logo,externalId,target.id);
+      for(const row of rows){if(row.id===target.id)continue;db.prepare('UPDATE team_translations SET team_id=? WHERE team_id=?').run(target.id,row.id);db.prepare('DELETE FROM teams WHERE id=?').run(row.id);}
+    }
+  });
+  tx();
+}
+normalizeTeamCatalog();
+function syncTeamRecord(t){
   if(!t?.strTeam)return null;
   const name=String(t.strTeam).trim(),country=String(t.strCountry||'').trim(),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||'');
   const existing=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) LIMIT 1').get(name);
@@ -283,7 +304,7 @@ app.get('/api/teams/search',async(req,res)=>{const q=String(req.query.q||'').tri
 app.post('/api/teams',(req,res)=>{const name=String(req.body.name||'').trim(),country=String(req.body.country||'').trim(),team_type=['club','club_reserve','national','national_youth','women'].includes(String(req.body.team_type))?String(req.body.team_type):'club',logo=String(req.body.logo||'').trim(),external_id=String(req.body.external_id||'').trim(),source=String(req.body.source||'manual').trim();if(!name)return res.status(400).json({error:'Indica o nome da equipa.'});const existing=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY CASE WHEN user_id IS NULL THEN 0 ELSE 1 END,id LIMIT 1').get(name);if(existing)return res.json(existing);try{const i=db.prepare('INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(?,?,?,?,?,?,?)').run(req.user.id,name,country,team_type,logo,external_id,source);res.json(db.prepare('SELECT * FROM teams WHERE id=?').get(i.lastInsertRowid))}catch(e){if(String(e.message).includes('UNIQUE')){const row=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY id LIMIT 1').get(name);return res.json(row)}res.status(500).json({error:'Não foi possível criar a equipa.'})}});
 app.put('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const row=db.prepare('SELECT * FROM teams WHERE id=? AND user_id=?').get(id,req.user.id);if(!row)return res.status(404).json({error:'Equipa não encontrada.'});const name=String(req.body.name||row.name).trim();if(!name)return res.status(400).json({error:'Indica o nome da equipa.'});db.prepare('UPDATE teams SET name=?,country=?,team_type=?,logo=? WHERE id=? AND user_id=?').run(name,String(req.body.country||row.country||''),String(req.body.team_type||row.team_type),String(req.body.logo||row.logo||''),id,req.user.id);res.json(db.prepare('SELECT * FROM teams WHERE id=?').get(id))});
 app.delete('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const r=db.prepare('DELETE FROM teams WHERE id=? AND user_id=?').run(id,req.user.id);if(!r.changes)return res.status(404).json({error:'Equipa não encontrada.'});res.json({ok:true})});
-app.post('/api/teams/seed-all',async(req,res)=>{
+app.post('/api/teams/seed-all',async(req,res)=>{normalizeTeamCatalog();
   const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
   const leagues=[...popularLeagues,...secondDivisionLeagues];
   const addLeagueTeams=async(league)=>{
