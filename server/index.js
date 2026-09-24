@@ -136,7 +136,30 @@ for(const c of isoCountries){
   if(existing) db.prepare('UPDATE countries SET code=? WHERE id=?').run(c.code,existing.id);
   else db.prepare('INSERT INTO countries(name,logo,code) VALUES(?,?,?)').run(c.name,'',c.code);
 }
-try{db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_countries_code ON countries(code)");}catch(e){}
+// Normalize country catalogue: merge translated catalog names with ISO seed names and keep one row per country.
+try{
+  const countryByCode={
+    PT:'Portugal',ES:'Espanha',GB:'Inglaterra',DE:'Alemanha',IT:'Itália',FR:'França',NL:'Países Baixos',BE:'Bélgica',
+    TR:'Turquia',GR:'Grécia',AT:'Áustria',CH:'Suíça',PL:'Polónia',CZ:'República Checa',RO:'Roménia',HR:'Croácia',
+    RS:'Sérvia',UA:'Ucrânia',NO:'Noruega',SE:'Suécia',DK:'Dinamarca',FI:'Finlândia',IE:'Irlanda',IS:'Islândia',
+    BR:'Brasil',AR:'Argentina',CO:'Colômbia',CL:'Chile',UY:'Uruguai',PY:'Paraguai',EC:'Equador',PE:'Peru',BO:'Bolívia',
+    MX:'México',US:'EUA',CA:'Canadá',CR:'Costa Rica',JP:'Japão',KR:'Coreia do Sul',CN:'China',AU:'Austrália',
+    NZ:'Nova Zelândia',ZA:'África do Sul',MA:'Marrocos',DZ:'Argélia',TN:'Tunísia',EG:'Egipto',SA:'Arábia Saudita',
+    AE:'Emirados Árabes Unidos',QA:'Catar',IL:'Israel',RU:'Rússia'
+  };
+  for(const [code,canonical] of Object.entries(countryByCode)){
+    const target=db.prepare('SELECT id FROM countries WHERE lower(trim(name))=lower(trim(?)) LIMIT 1').get(canonical);
+    const source=db.prepare('SELECT id,name FROM countries WHERE upper(code)=upper(?) OR lower(trim(name))=lower(trim(?)) LIMIT 1').get(code,canonical);
+    if(!target)continue;
+    db.prepare('UPDATE countries SET code=? WHERE id=?').run(code,target.id);
+    const duplicates=db.prepare('SELECT id FROM countries WHERE id<>? AND (upper(code)=upper(?) OR lower(trim(name))=lower(trim(?)))').all(target.id,code,canonical);
+    for(const d of duplicates){
+      db.prepare('UPDATE competitions SET country_id=? WHERE country_id=?').run(target.id,d.id);
+      db.prepare('DELETE FROM countries WHERE id=?').run(d.id);
+    }
+  }
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_countries_code ON countries(code)');
+}catch(e){console.error('Country catalogue validation:',e.message)}
 
 
 
