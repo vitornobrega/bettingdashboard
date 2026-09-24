@@ -241,6 +241,32 @@ app.get('/api/teams/search',async(req,res)=>{const q=String(req.query.q||'').tri
 app.post('/api/teams',(req,res)=>{const name=String(req.body.name||'').trim(),country=String(req.body.country||'').trim(),team_type=['club','club_reserve','national','national_youth','women'].includes(String(req.body.team_type))?String(req.body.team_type):'club',logo=String(req.body.logo||'').trim(),external_id=String(req.body.external_id||'').trim(),source=String(req.body.source||'manual').trim();if(!name)return res.status(400).json({error:'Indica o nome da equipa.'});const existing=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY CASE WHEN user_id IS NULL THEN 0 ELSE 1 END,id LIMIT 1').get(name);if(existing)return res.json(existing);try{const i=db.prepare('INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(?,?,?,?,?,?,?)').run(req.user.id,name,country,team_type,logo,external_id,source);res.json(db.prepare('SELECT * FROM teams WHERE id=?').get(i.lastInsertRowid))}catch(e){if(String(e.message).includes('UNIQUE')){const row=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY id LIMIT 1').get(name);return res.json(row)}res.status(500).json({error:'Não foi possível criar a equipa.'})}});
 app.put('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const row=db.prepare('SELECT * FROM teams WHERE id=? AND user_id=?').get(id,req.user.id);if(!row)return res.status(404).json({error:'Equipa não encontrada.'});const name=String(req.body.name||row.name).trim();if(!name)return res.status(400).json({error:'Indica o nome da equipa.'});db.prepare('UPDATE teams SET name=?,country=?,team_type=?,logo=? WHERE id=? AND user_id=?').run(name,String(req.body.country||row.country||''),String(req.body.team_type||row.team_type),String(req.body.logo||row.logo||''),id,req.user.id);res.json(db.prepare('SELECT * FROM teams WHERE id=?').get(id))});
 app.delete('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const r=db.prepare('DELETE FROM teams WHERE id=? AND user_id=?').run(id,req.user.id);if(!r.changes)return res.status(404).json({error:'Equipa não encontrada.'});res.json({ok:true})});
+app.post('/api/teams/seed-all',async(req,res)=>{
+  const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
+  const leagues=[...popularLeagues,...secondDivisionLeagues];
+  const addLeagueTeams=async(league)=>{
+    try{
+      const u=`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/search_all_teams.php?l=${encodeURIComponent(league.name.replaceAll(' ','_'))}`;
+      const r=await fetch(u);if(!r.ok)return;
+      const d=await r.json();
+      for(const t of (d.teams||[])){
+        const x=await syncTeamRecord({...t,strCountry:t.strCountry||league.country});
+        if(x)results.push({...x,league:league.name});
+      }
+    }catch(e){}
+  };
+  for(const id of popularTeamIds){
+    try{
+      const r=await fetch(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/lookupteam.php?id=${id}`);
+      if(!r.ok)continue;
+      const d=await r.json();const t=d.teams?.[0];if(!t?.strTeam)continue;
+      const x=await syncTeamRecord(t);if(x)results.push({...x,source:'popular'});
+    }catch(e){}
+  }
+  for(const league of leagues)await addLeagueTeams(league);
+  const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL OR user_id=?").get(req.user.id).count;
+  res.json({ok:true,count:results.length,total,teams:results});
+});
 app.get('/api/admin/competition-catalog',requireAdmin,(req,res)=>{const country=db.prepare('SELECT name FROM countries WHERE id=?').get(req.query.country_id);res.json(country&&Array.isArray(catalog[country.name])?catalog[country.name]:[])});app.get('/api/admin/competition-catalog-all',requireAdmin,(req,res)=>{const rows=[];for(const country of all('SELECT id,name FROM countries WHERE user_id IS NULL OR user_id=? ORDER BY name',req.user.id))for(const name of (catalog[country.name]||[]))rows.push({country_id:country.id,country_name:country.name,name});res.json(rows)});
 app.get('/api/admin/competitions',requireAdmin,(req,res)=>res.json(all('SELECT c.*,p.name country_name,p.logo country_logo FROM competitions c JOIN countries p ON p.id=c.country_id WHERE c.user_id IS NULL OR c.user_id=? ORDER BY p.name,c.name',req.user.id).sort(competitionOrder)));app.get('/api/admin/competition-validation',requireAdmin,(req,res)=>{const invalid=all('SELECT c.id,c.name,c.country_id,p.name country_name FROM competitions c JOIN countries p ON p.id=c.country_id WHERE c.user_id IS NULL OR c.user_id=? ORDER BY p.name,c.name',req.user.id).filter(x=>Array.isArray(catalog[x.country_name])&&!catalog[x.country_name].includes(x.name));res.json({invalid,count:invalid.length})});
 app.post('/api/admin/competitions',requireAdmin,(req,res)=>{try{const country=db.prepare('SELECT name FROM countries WHERE id=?').get(req.body.country_id);const name=String(req.body.name||'').trim();if(!country||!name)return res.status(400).json({error:'Seleciona o país e indica a competição.'});run('INSERT INTO competitions(country_id,name,logo,user_id) VALUES(?,?,?,?)',req.body.country_id,name,req.body.logo||'',req.user.id);res.json({ok:true})}catch(e){res.status(400).json({error:'Competição já existe neste país.'})}});
