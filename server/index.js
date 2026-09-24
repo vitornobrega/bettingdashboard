@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS competitions(id INTEGER PRIMARY KEY AUTOINCREMENT,cou
 CREATE TABLE IF NOT EXISTS markets(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL UNIQUE,active INTEGER NOT NULL DEFAULT 1,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS bets(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,datetime TEXT,house_id INTEGER,country TEXT,competition TEXT,home_team TEXT,away_team TEXT,market TEXT,selection TEXT,odds REAL,stake REAL,units REAL,bonus INTEGER DEFAULT 0,result TEXT DEFAULT 'pending',profit REAL DEFAULT 0,notes TEXT,bet_type TEXT DEFAULT 'single',selections TEXT,combined_odds REAL,created_at TEXT DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(house_id) REFERENCES houses(id));
 CREATE TABLE IF NOT EXISTS transactions(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,house_id INTEGER,type TEXT,amount REAL,method TEXT,status TEXT,datetime TEXT,notes TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(house_id) REFERENCES houses(id));
-CREATE TABLE IF NOT EXISTS bonuses(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,house_id INTEGER,week_start TEXT,deadline TEXT,required_events INTEGER,min_odds REAL,min_combined_odds REAL,progress INTEGER DEFAULT 0,status TEXT DEFAULT 'open',notes TEXT,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(house_id) REFERENCES houses(id));;CREATE TABLE IF NOT EXISTS teams(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,name TEXT NOT NULL,country TEXT,team_type TEXT NOT NULL DEFAULT 'club',logo TEXT,external_id TEXT,source TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,UNIQUE(user_id,name));`);
+CREATE TABLE IF NOT EXISTS bonuses(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,house_id INTEGER,week_start TEXT,deadline TEXT,required_events INTEGER,min_odds REAL,min_combined_odds REAL,progress INTEGER DEFAULT 0,status TEXT DEFAULT 'open',notes TEXT,FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(house_id) REFERENCES houses(id));;CREATE TABLE IF NOT EXISTS teams(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,name TEXT NOT NULL,country TEXT,team_type TEXT NOT NULL DEFAULT 'club',logo TEXT,external_id TEXT,source TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,UNIQUE(user_id,name));CREATE TABLE IF NOT EXISTS team_translations(id INTEGER PRIMARY KEY AUTOINCREMENT,team_id INTEGER NOT NULL,language TEXT NOT NULL,name TEXT NOT NULL,UNIQUE(team_id,language),FOREIGN KEY(team_id) REFERENCES teams(id) ON DELETE CASCADE);`);
 for(const q of ["ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'","ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1","ALTER TABLE houses ADD COLUMN logo TEXT","ALTER TABLE users ADD COLUMN currency TEXT NOT NULL DEFAULT 'EUR'","ALTER TABLE users ADD COLUMN language TEXT NOT NULL DEFAULT 'pt'","ALTER TABLE bets ADD COLUMN bet_type TEXT DEFAULT 'single'","ALTER TABLE bets ADD COLUMN selections TEXT","ALTER TABLE bets ADD COLUMN combined_odds REAL"]){try{db.exec(q)}catch(e){}}
 db.prepare("UPDATE users SET role='admin' WHERE lower(email)=lower(?)").run('vitor.nobrega87@gmail.com');
 try{db.exec("CREATE TABLE IF NOT EXISTS app_settings(key TEXT PRIMARY KEY,value TEXT NOT NULL)");db.prepare("INSERT OR IGNORE INTO app_settings(key,value) VALUES('currency','EUR'),('odds_format','dot'),('green_color','#16a34a'),('red_color','#dc2626'),('accent_color','#2563eb'),('theme','light')").run();db.prepare("DELETE FROM app_settings WHERE key='stake_limit_percent'").run()}catch(e){console.error(e)}
@@ -101,6 +101,34 @@ const defaultMarkets=['1X2','Dupla Hipótese','Mais de 0.5 Golos','Mais de 1.5 G
 for(const n of defaultMarkets)db.prepare("INSERT OR IGNORE INTO markets(name) VALUES(?)").run(n);
 const defaultTeams=[['Portugal','Portugal','national'],['Portugal U21','Portugal','national_youth'],['Portugal U19','Portugal','national_youth'],['Benfica','Portugal','club'],['Benfica B','Portugal','club_reserve'],['Sporting CP','Portugal','club'],['Sporting CP B','Portugal','club_reserve'],['FC Porto','Portugal','club'],['SC Braga','Portugal','club'],['Boca Juniors','Argentina','club'],['River Plate','Argentina','club'],['Argentina','Argentina','national'],['Brazil','Brasil','national'],['Spain','Espanha','national'],['England','Inglaterra','national'],['France','França','national'],['Germany','Alemanha','national'],['Italy','Itália','national']];
 for(const [name,country,team_type] of defaultTeams)db.prepare("INSERT INTO teams(user_id,name,country,team_type,source) SELECT NULL,?,?,?,'seed' WHERE NOT EXISTS (SELECT 1 FROM teams WHERE user_id IS NULL AND name=?)").run(name,country,team_type,name);
+const teamNameTranslations={
+  'Portugal':{pt:'Portugal',en:'Portugal',es:'Portugal'},
+  'Portugal U21':{pt:'Portugal Sub-21',en:'Portugal U21',es:'Portugal Sub-21'},
+  'Portugal U19':{pt:'Portugal Sub-19',en:'Portugal U19',es:'Portugal Sub-19'},
+  'Argentina':{pt:'Argentina',en:'Argentina',es:'Argentina'},
+  'Brazil':{pt:'Brasil',en:'Brazil',es:'Brasil'},
+  'Spain':{pt:'Espanha',en:'Spain',es:'España'},
+  'England':{pt:'Inglaterra',en:'England',es:'Inglaterra'},
+  'France':{pt:'França',en:'France',es:'Francia'},
+  'Germany':{pt:'Alemanha',en:'Germany',es:'Alemania'},
+  'Italy':{pt:'Itália',en:'Italy',es:'Italia'}
+};
+const ensureTeamTranslations=db.transaction(()=>{
+  for(const [canonical,langs] of Object.entries(teamNameTranslations)){
+    let team=db.prepare("SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY id LIMIT 1").get(canonical);
+    if(!team)continue;
+    for(const [language,name] of Object.entries(langs)){
+      const duplicate=db.prepare("SELECT id FROM teams WHERE id<>? AND lower(trim(name))=lower(trim(?)) LIMIT 1").get(team.id,name);
+      if(duplicate){
+        db.prepare("UPDATE teams SET country=COALESCE(country,?),logo=COALESCE(logo,?),external_id=COALESCE(external_id,?),source=COALESCE(source,?) WHERE id=?").run(team.country,team.logo,team.external_id,team.source,team.id);
+        db.prepare("DELETE FROM teams WHERE id=?").run(duplicate.id);
+      }
+      db.prepare("INSERT INTO team_translations(team_id,language,name) VALUES(?,?,?) ON CONFLICT(team_id,language) DO UPDATE SET name=excluded.name").run(team.id,language,name);
+    }
+  }
+});
+try{ensureTeamTranslations()}catch(e){console.error('Team translations seed:',e.message)}
+
 
 
 // Normalize the team catalogue: keep one canonical team per name and prevent future duplicates.
@@ -128,7 +156,7 @@ app.get('/api/admin/countries',requireAdmin,(req,res)=>res.json(all('SELECT * FR
 app.post('/api/admin/countries',requireAdmin,(req,res)=>{try{run('INSERT INTO countries(name,logo) VALUES(?,?)',String(req.body.name||'').trim(),req.body.logo||'');res.json({ok:true})}catch(e){res.status(400).json({error:'País já existe.'})}});
 app.put('/api/admin/countries/:id',requireAdmin,(req,res)=>{run('UPDATE countries SET name=?,logo=? WHERE id=?',req.body.name,req.body.logo||'',req.params.id);res.json({ok:true})});
 app.delete('/api/admin/countries/:id',requireAdmin,(req,res)=>{run('DELETE FROM countries WHERE id=?',req.params.id);res.json({ok:true})});
-app.get('/api/countries',(req,res)=>res.json(all('SELECT * FROM countries WHERE user_id IS NULL OR user_id=? ORDER BY name',req.user.id)));app.get('/api/teams',(req,res)=>{const q=String(req.query.search||'').trim().toLowerCase(),type=String(req.query.type||'').trim(),country=String(req.query.country||'').trim(),like='%'+q+'%';const where=['(user_id IS NULL OR user_id=?)'],args=[req.user.id];if(q){where.push('(lower(name) LIKE ? OR lower(COALESCE(country,\'\')) LIKE ?)');args.push(like,like)}if(type){where.push('team_type=?');args.push(type)}if(country){where.push('lower(COALESCE(country,\'\'))=lower(?)');args.push(country)}const limit=Math.min(Math.max(Number(req.query.limit)||1000,1),1000);const rows=all(`SELECT * FROM teams WHERE ${where.join(' AND ')} ORDER BY name LIMIT ${limit}`,...args);res.json(rows)});
+app.get('/api/countries',(req,res)=>res.json(all('SELECT * FROM countries WHERE user_id IS NULL OR user_id=? ORDER BY name',req.user.id)));app.get('/api/teams',(req,res)=>{const q=String(req.query.search||'').trim().toLowerCase(),type=String(req.query.type||'').trim(),country=String(req.query.country||'').trim(),like='%'+q+'%';const where=['(user_id IS NULL OR user_id=?)'],args=[req.user.id];if(q){where.push('(lower(name) LIKE ? OR lower(COALESCE(country,\'\')) LIKE ? OR EXISTS (SELECT 1 FROM team_translations ttq WHERE ttq.team_id=teams.id AND lower(ttq.name) LIKE ?))');args.push(like,like,like)}if(type){where.push('team_type=?');args.push(type)}if(country){where.push('lower(COALESCE(country,\'\'))=lower(?)');args.push(country)}const limit=Math.min(Math.max(Number(req.query.limit)||1000,1),1000);const rows=all(`SELECT * FROM teams WHERE ${where.join(' AND ')} ORDER BY name LIMIT ${limit}`,...args);for(const row of rows){row.translations={};for(const t of all('SELECT language,name FROM team_translations WHERE team_id=?',row.id))row.translations[t.language]=t.name}res.json(rows)});
 
 // Curated starter catalogue. Logos are fetched from TheSportsDB on demand through /api/teams/seed-popular.
 const popularTeamIds=[134108,135708,134114,133604,133602,133613,133612,133610,133738,133739,133650,133664,133714,133729,133676,133681,133667,133670,134287,134465,135156,135171];
