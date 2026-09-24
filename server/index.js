@@ -297,14 +297,6 @@ app.post('/api/teams/seed-all',async(req,res)=>{
       }
     }catch(e){}
   };
-  for(const id of popularTeamIds){
-    try{
-      const r=await fetch(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/lookupteam.php?id=${id}`);
-      if(!r.ok)continue;
-      const d=await r.json();const t=d.teams?.[0];if(!t?.strTeam)continue;
-      const x=await syncTeamRecord(t);if(x)results.push({...x,source:'popular'});
-    }catch(e){}
-  }
   for(const league of leagues)await addLeagueTeams(league);
   const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL OR user_id=?").get(req.user.id).count;
   res.json({ok:true,count:results.length,total,teams:results});
