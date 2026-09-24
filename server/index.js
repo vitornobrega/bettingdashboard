@@ -217,7 +217,12 @@ const popularLeagues=[
   {id:4337,name:'Dutch Eredivisie',country:'Netherlands'},
   {id:4338,name:'Belgian Pro League',country:'Belgium'},
   {id:4406,name:'Argentine Primera Division',country:'Argentina'},
-  {id:4351,name:'Brazilian Serie A',country:'Brazil'}
+  {id:4351,name:'Brazilian Serie A',country:'Brazil'},
+  {id:4339,name:'Turkish Super Lig',country:'Turkey'},
+  {id:4336,name:'Greek Super League',country:'Greece'},
+  {id:4330,name:'Scottish Premiership',country:'Scotland'},
+  {id:4346,name:'MLS',country:'United States'},
+  {id:4350,name:'Mexican Primera Division',country:'Mexico'}
 ];
 async function syncTeamRecord(t){
   if(!t?.strTeam)return null;
@@ -252,7 +257,11 @@ const secondDivisionLeagues=[
   {name:'Austrian 2. Liga',country:'Austria'},
   {name:'Swiss Challenge League',country:'Switzerland'},
   {name:'Polish 1. Liga',country:'Poland'},
-  {name:'Czech National Football League',country:'Czech Republic'}
+  {name:'Czech National Football League',country:'Czech Republic'},
+  {name:'Portuguese Liga 3',country:'Portugal'},
+  {name:'English National League',country:'England'},
+  {name:'Spanish Primera Federacion',country:'Spain'},
+  {name:'German 3. Liga',country:'Germany'}
 ];
 app.post('/api/teams/seed-second-divisions',async(req,res)=>{
   const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
