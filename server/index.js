@@ -319,6 +319,24 @@ app.post('/api/teams/seed-all',async(req,res)=>{normalizeTeamCatalog();
     }catch(e){}
   };
   for(const league of leagues)await addLeagueTeams(league);
+
+  // O endpoint gratuito do TheSportsDB pode devolver apenas parte das equipas de LaLiga.
+  // Reforçamos Espanha com os clubes atuais e usamos searchteams.php para obter o emblema.
+  const spanishClubs=['Athletic Club','Atlético Madrid','CA Osasuna','Celta','Deportivo Alavés','Elche CF','FC Barcelona','Getafe CF','Levante UD','Málaga CF','Racing Santander','Rayo Vallecano','RC Deportivo','RCD Espanyol de Barcelona','Real Betis','Real Madrid','Real Sociedad','Sevilla FC','Valencia CF','Villarreal'];
+  for(const club of spanishClubs){
+    try{
+      const u=`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/searchteams.php?t=${encodeURIComponent(club)}`;
+      const r=await fetch(u);if(!r.ok)continue;
+      const d=await r.json();
+      const candidates=(d.teams||[]).filter(t=>String(t.strSport||'').toLowerCase()==='soccer'&&String(t.strCountry||'').toLowerCase().includes('spain'));
+      const t=candidates[0]||d.teams?.find(x=>String(x.strSport||'').toLowerCase()==='soccer');
+      if(t){
+        const x=await syncTeamRecord({...t,strCountry:t.strCountry||'Spain'});
+        if(x)results.push({...x,league:'Spanish La Liga'});
+      }
+    }catch(e){}
+  }
+
   const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL OR user_id=?").get(req.user.id).count;
   res.json({ok:true,count:results.length,total,teams:results});
 });
