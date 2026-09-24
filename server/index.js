@@ -224,7 +224,7 @@ const popularLeagues=[
   {id:4346,name:'MLS',country:'United States'},
   {id:4350,name:'Mexican Primera Division',country:'Mexico'}
 ];
-async const teamCanonicalAliases={
+const teamCanonicalAliases={
   'Benfica':['Benfica','SL Benfica','SLB','Benfica B'],
   'FC Porto':['FC Porto','Porto','F.C. Porto','FC Porto B']
 };
