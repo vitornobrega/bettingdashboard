@@ -323,7 +323,6 @@ function inferTeamLogo(teamName){
   // Reserve/second-team variants should reuse the senior club crest when they do not
   // have a dedicated crest. This keeps Benfica B, Porto B, Sporting B, etc. consistent.
   add(name.replace(/\s+(?:B|II|2|U23|U-23)$/i,'').trim());
-  add(name.replace(/\\s+(?:B|II|2|U23|U-23)\\s*$/i,'').trim());
   for(const candidate of candidates){
     if(candidate.toLowerCase()===name.toLowerCase())continue;
     const row=db.prepare("SELECT logo FROM teams WHERE lower(trim(name))=lower(trim(?)) AND trim(COALESCE(logo,''))<>'' ORDER BY CASE WHEN user_id IS NULL THEN 0 ELSE 1 END,id LIMIT 1").get(candidate);
