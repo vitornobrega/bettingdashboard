@@ -514,3 +514,38 @@ html[data-theme='dark'] .stake-warning .material-symbols-outlined{color:#fbbf24}
 .side-menu.collapsed .nav-section{position:relative}.side-menu.collapsed .nav-submenu{position:absolute;left:calc(100% + 8px);top:0;z-index:100;min-width:190px;margin:0;padding:8px;background:var(--card,#1f2937);border:1px solid #3f4b5e;border-left:1px solid #3f4b5e;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.22)}.side-menu.collapsed .nav-submenu button{justify-content:flex-start!important;padding:8px 10px!important;font-size:13px!important}.side-menu.collapsed .side-nav{overflow:visible}.side-menu.collapsed .nav-section{position:relative}.side-menu.collapsed .nav-submenu{position:absolute;left:calc(100% + 8px);top:0;z-index:100;min-width:190px;margin:0;padding:8px;background:#1f2937;border:1px solid #3f4b5e;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.22)}.side-menu.collapsed .nav-submenu button{justify-content:flex-start!important;padding:8px 10px!important;font-size:13px!important}.team-create-form{display:flex;flex-direction:column;gap:8px}.team-create-form label{display:flex;flex-direction:column;gap:4px;font-size:12px}.team-create-form select,.team-create-form input{width:100%;box-sizing:border-box}
 
 .team-suggestions{position:absolute;z-index:30;left:0;right:0;top:100%;background:var(--card,#fff);border:1px solid #ddd;border-radius:10px;max-height:280px;overflow-y:auto;box-shadow:0 10px 24px rgba(0,0,0,.12)}.team-suggestions>button{width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:0;background:transparent;text-align:left;cursor:pointer}.team-suggestions>button img,.team-suggestion-country,.team-suggestion-ball{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;object-fit:contain;flex:0 0 26px}.team-suggestions>button small{display:block;opacity:.65}.team-suggestions .team-create{border-top:1px solid #eee;font-weight:700}.team-create-form{padding:10px;border-top:1px solid #eee}.team-create-form .primary{margin-top:8px}
+
+
+/* Menu recolhido: submenu de configuração fora da área de scroll e sempre visível. */
+.side-menu.collapsed .side-nav{overflow:visible!important}
+.side-menu.collapsed .nav-submenu{
+  position:fixed!important;
+  left:76px!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  z-index:9999!important;
+  min-width:210px!important;
+  max-width:260px!important;
+  margin:0!important;
+  padding:8px!important;
+  background:#1f2937!important;
+  border:1px solid #475569!important;
+  border-radius:12px!important;
+  box-shadow:0 16px 40px rgba(0,0,0,.35)!important;
+}
+.side-menu.collapsed .nav-submenu button{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  justify-content:flex-start!important;
+  width:100%!important;
+  min-height:40px!important;
+  padding:8px 10px!important;
+  font-size:13px!important;
+  color:#dbe4ef!important;
+  white-space:nowrap!important;
+}
+.side-menu.collapsed .nav-submenu button span:not(.material-symbols-outlined){display:inline!important;overflow:visible!important;opacity:1!important}
+.side-menu.collapsed .nav-submenu button:hover,.side-menu.collapsed .nav-submenu button.active{background:#334155!important;color:#fff!important}
+.team-country-image{object-fit:contain;background:#fff;border-radius:4px}
+.team-suggestion-country{object-fit:contain;background:#fff;border-radius:4px}
