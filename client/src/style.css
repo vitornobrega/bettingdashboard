@@ -652,3 +652,18 @@ html[data-theme='dark'] .team-create-form{
 html[data-theme='dark'] .team-create-form label{
   color:#cbd5e1;
 }
+
+/* Melhor contraste da lista de apostas no tema escuro */
+html[data-theme='dark'] .bets-tablewrap table{color:#f8fafc}
+html[data-theme='dark'] .bets-tablewrap th{color:#cbd5e1;background:#111827;border-bottom-color:#475569}
+html[data-theme='dark'] .bets-tablewrap td{color:#f1f5f9;border-bottom-color:#374151}
+html[data-theme='dark'] .bets-tablewrap .bet-game-cell strong{color:#fff}
+html[data-theme='dark'] .bets-tablewrap .bet-game-cell span{color:#cbd5e1}
+html[data-theme='dark'] .bets-tablewrap .result.win{color:#86efac}
+html[data-theme='dark'] .bets-tablewrap .result.loss{color:#fca5a5}
+html[data-theme='dark'] .bets-tablewrap tr.bet-history-pending td{background:#1f2937;color:#f1f5f9}
+html[data-theme='dark'] .bets-tablewrap tr.bet-history-win td{background:#12351f;color:#f1f5f9;border-bottom-color:#27623c}
+html[data-theme='dark'] .bets-tablewrap tr.bet-history-loss td{background:#3a1d20;color:#f1f5f9;border-bottom-color:#713038}
+html[data-theme='dark'] .bets-tablewrap tr.bet-history-win:hover td{background:#174b2a}
+html[data-theme='dark'] .bets-tablewrap tr.bet-history-loss:hover td{background:#4a2328}
+html[data-theme='dark'] .bets-tablewrap .icon-btn{background:#1f2937;color:#e5e7eb;border-color:#475569}
