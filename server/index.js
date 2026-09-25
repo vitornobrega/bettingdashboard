@@ -265,7 +265,14 @@ const teamCanonicalAliases={
   'Fulham':['Fulham','Fulham FC','Fulham F.C.','Fulham Football Club'],
   'River Plate':['River Plate','Club Atlético River Plate','CA River Plate','River Plate FC','River']
 };
-const teamNameKey=name=>String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/&/g,'and').replace(/[^a-z0-9]+/gi,'').toLowerCase();
+const teamNameKey=name=>{
+  let value=String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/&/g,'and').toLowerCase().trim();
+  // Treat common club suffixes/prefixes as formatting, so "Arsenal FC",
+  // "Arsenal F.C." and "FC Arsenal" resolve to the same team.
+  value=value.replace(/(?:^|\\s)(?:f\\.?c\\.?|football club|a\\.?f\\.?c\\.?|c\\.?f\\.?|b\\.?c\\.?)(?=\\s|$)/gi,' ');
+  value=value.replace(/[^a-z0-9]+/gi,'').trim();
+  return value;
+};
 function cleanupTeamCatalog(){
   // A normalização (ex.: "FC Porto.png" -> "FC Porto") pode colidir
   // com o índice único antes de termos oportunidade de fundir os registos.
