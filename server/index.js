@@ -241,13 +241,13 @@ const teamCanonicalAliases={
 };
 function cleanupTeamCatalog(){
   const tx=db.transaction(()=>{
-    const rows=db.prepare("SELECT * FROM teams WHERE user_id IS NULL ORDER BY id").all();
+    const rows=db.prepare("SELECT * FROM teams ORDER BY id").all();
     const seen=new Map();
     for(const row of rows){
-      const cleaned=String(row.name||'').trim().replace(/\\.(?:png|jpg|jpeg|webp)$/i,'').trim();
+      const cleaned=String(row.name||'').trim().replace(/\.(?:png|jpg|jpeg|webp)$/i,'').trim();
       if(!cleaned)continue;
       if(cleaned!==row.name)db.prepare("UPDATE teams SET name=? WHERE id=?").run(cleaned,row.id);
-      const key=cleaned.toLocaleLowerCase('pt-PT');
+      const key=String(row.user_id??'global')+':'+cleaned.toLocaleLowerCase('pt-PT');
       const current=seen.get(key);
       if(!current){seen.set(key,{...row,name:cleaned});continue}
       const target=current.logo?current:(row.logo?row:current);
@@ -351,7 +351,7 @@ async function preloadSecondaryFootballCatalog(){
     return count;
   });
   const count=upsert(entries);
-  normalizeTeamCatalog();
+  cleanupTeamCatalog();
   const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count;
   return {count,total,source_count:entries.length};
 }
@@ -455,7 +455,7 @@ app.get('/api/teams/search',async(req,res)=>{const q=String(req.query.q||'').tri
 app.post('/api/teams',(req,res)=>{const name=String(req.body.name||'').trim(),country=String(req.body.country||'').trim(),team_type=['club','club_reserve','national','national_youth','women'].includes(String(req.body.team_type))?String(req.body.team_type):'club',logo=String(req.body.logo||'').trim(),external_id=String(req.body.external_id||'').trim(),source=String(req.body.source||'manual').trim();if(!name)return res.status(400).json({error:'Indica o nome da equipa.'});const existing=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY CASE WHEN user_id IS NULL THEN 0 ELSE 1 END,id LIMIT 1').get(name);if(existing)return res.json(existing);try{const i=db.prepare('INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(?,?,?,?,?,?,?)').run(req.user.id,name,country,team_type,logo,external_id,source);res.json(db.prepare('SELECT * FROM teams WHERE id=?').get(i.lastInsertRowid))}catch(e){if(String(e.message).includes('UNIQUE')){const row=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY id LIMIT 1').get(name);return res.json(row)}res.status(500).json({error:'Não foi possível criar a equipa.'})}});
 app.put('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const row=db.prepare('SELECT * FROM teams WHERE id=? AND user_id=?').get(id,req.user.id);if(!row)return res.status(404).json({error:'Equipa não encontrada.'});const name=String(req.body.name||row.name).trim();if(!name)return res.status(400).json({error:'Indica o nome da equipa.'});db.prepare('UPDATE teams SET name=?,country=?,team_type=?,logo=? WHERE id=? AND user_id=?').run(name,String(req.body.country||row.country||''),String(req.body.team_type||row.team_type),String(req.body.logo||row.logo||''),id,req.user.id);res.json(db.prepare('SELECT * FROM teams WHERE id=?').get(id))});
 app.delete('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const r=db.prepare('DELETE FROM teams WHERE id=? AND user_id=?').run(id,req.user.id);if(!r.changes)return res.status(404).json({error:'Equipa não encontrada.'});res.json({ok:true})});
-async function preloadTeamCatalog(){normalizeTeamCatalog();
+async function preloadTeamCatalog(){
   const staticCatalog=await preloadStaticFootballLogos();
   const secondaryCatalog=await preloadSecondaryFootballCatalog();
   const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
@@ -490,6 +490,7 @@ async function preloadTeamCatalog(){normalizeTeamCatalog();
     }catch(e){}
   }
 
+  cleanupTeamCatalog();
   const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count;
   return {ok:true,count:results.length+staticCatalog.count+secondaryCatalog.count,total,static_count:staticCatalog.count,secondary_count:secondaryCatalog.count,teams:results};
 }
