@@ -212,7 +212,7 @@ app.post('/api/teams/seed-popular',async(req,res)=>{
     try{
       const r=await fetch(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/lookupteam.php?id=${id}`);
       if(!r.ok)continue; const d=await r.json(); const t=d.teams?.[0]; if(!t?.strTeam)continue;
-      const name=String(t.strTeam).trim(),country=normalizeTeamCountry(t.strCountry),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||id);
+      const name=String(t.strTeam).trim().replace(/\.(?:png|jpg|jpeg|webp|svg)$/i,'').trim(),country=normalizeTeamCountry(t.strCountry),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||id);
       const existing=db.prepare('SELECT id FROM teams WHERE lower(trim(name))=lower(trim(?)) LIMIT 1').get(name);
       if(existing){db.prepare('UPDATE teams SET country=COALESCE(NULLIF(country,\'\'),?),logo=COALESCE(NULLIF(logo,\'\'),?),external_id=COALESCE(NULLIF(external_id,\'\'),?),source=CASE WHEN source=\'manual\' THEN \'thesportsdb\' ELSE source END WHERE id=?').run(country,logo,external_id,existing.id);results.push({name,updated:true});}
       else {db.prepare('INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(NULL,?,?,?,?,?,\'thesportsdb\')').run(name,country,'club',logo,external_id);results.push({name,added:true});}
@@ -313,7 +313,7 @@ function cleanupTeamCatalog(){
 cleanupTeamCatalog();
 function syncTeamRecord(t,source='thesportsdb'){
   if(!t?.strTeam)return null;
-  const name=String(t.strTeam).trim(),country=normalizeTeamCountry(t.strCountry),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||'').trim();
+  const name=String(t.strTeam).trim().replace(/\.(?:png|jpg|jpeg|webp|svg)$/i,'').trim(),country=normalizeTeamCountry(t.strCountry),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||'').trim();
   if(!name)return null;
   const globalByExternal=external_id?db.prepare("SELECT * FROM teams WHERE user_id IS NULL AND external_id=? LIMIT 1").get(external_id):null;
   const globalByName=db.prepare("SELECT * FROM teams WHERE user_id IS NULL AND lower(trim(name))=lower(trim(?)) AND lower(trim(COALESCE(country,'')))=lower(trim(?)) LIMIT 1").get(name,country);
