@@ -288,7 +288,7 @@ function cleanupTeamCatalog(){
       if(!rows2.length)continue;
       const target=rows2.find(r=>r.name.trim().toLowerCase()===canonical.toLowerCase())||rows2.find(r=>String(r.logo||'').trim())||rows2[0];
       const logo=rows2.find(r=>String(r.logo||'').trim())?.logo||target.logo||'';
-      const country=rows2.find(r=>String(r.country||'').trim())?.country||target.country||'';
+      const country=normalizeTeamCountry(rows2.find(r=>String(r.country||'').trim())?.country||target.country||'');
       const externalId=rows2.find(r=>String(r.external_id||'').trim())?.external_id||target.external_id||'';
       db.prepare("UPDATE teams SET name=?,country=?,logo=?,external_id=? WHERE id=?").run(canonical,country,logo,externalId,target.id);
       for(const row of rows2){
@@ -306,7 +306,7 @@ function cleanupTeamCatalog(){
 cleanupTeamCatalog();
 function syncTeamRecord(t,source='thesportsdb'){
   if(!t?.strTeam)return null;
-  const name=String(t.strTeam).trim(),country=String(t.strCountry||'').trim(),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||'').trim();
+  const name=String(t.strTeam).trim(),country=normalizeTeamCountry(t.strCountry),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||'').trim();
   if(!name)return null;
   const globalByExternal=external_id?db.prepare("SELECT * FROM teams WHERE user_id IS NULL AND external_id=? LIMIT 1").get(external_id):null;
   const globalByName=db.prepare("SELECT * FROM teams WHERE user_id IS NULL AND lower(trim(name))=lower(trim(?)) AND lower(trim(COALESCE(country,'')))=lower(trim(?)) LIMIT 1").get(name,country);
