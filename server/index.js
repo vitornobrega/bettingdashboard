@@ -256,8 +256,8 @@ const teamCanonicalAliases={
   'Ajax':['Ajax','Ajax Amsterdam','AFC Ajax','Ajax FC'],
   'Excelsior':['Excelsior','Excelsior Rotterdam','SBV Excelsior'],
   'Feyenoord':['Feyenoord','Feyenoord Rotterdam'],
-  'Benfica':['Benfica','SL Benfica','SLB','Benfica B'],
-  'FC Porto':['FC Porto','Porto','F.C. Porto','FC Porto B']
+  'Benfica':['Benfica','SL Benfica','SLB'],
+  'FC Porto':['FC Porto','Porto','F.C. Porto']
 };
 function cleanupTeamCatalog(){
   // A normalização (ex.: "FC Porto.png" -> "FC Porto") pode colidir
@@ -314,6 +314,34 @@ function cleanupTeamCatalog(){
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_teams_name_normalized ON teams(user_id, lower(trim(name)))");
 }
 cleanupTeamCatalog();
+
+function inferTeamLogo(teamName){
+  const name=String(teamName||'').trim();
+  if(!name)return '';
+  const candidates=[];
+  const add=(v)=>{const x=String(v||'').trim();if(x&&!candidates.includes(x))candidates.push(x)};
+  // Reserve/second-team variants should reuse the senior club crest when they do not
+  // have a dedicated crest. This keeps Benfica B, Porto B, Sporting B, etc. consistent.
+  add(name.replace(/\\s+(?:B|II|2|U23|U-23)$/i,'').trim());
+  add(name.replace(/\\s+(?:B|II|2|U23|U-23)\\s*$/i,'').trim());
+  for(const candidate of candidates){
+    if(candidate.toLowerCase()===name.toLowerCase())continue;
+    const row=db.prepare("SELECT logo FROM teams WHERE lower(trim(name))=lower(trim(?)) AND trim(COALESCE(logo,''))<>'' ORDER BY CASE WHEN user_id IS NULL THEN 0 ELSE 1 END,id LIMIT 1").get(candidate);
+    if(row?.logo)return String(row.logo).trim();
+  }
+  return '';
+}
+
+function backfillTeamLogos(){
+  const rows=db.prepare("SELECT id,name,logo FROM teams WHERE trim(COALESCE(logo,''))=''").all();
+  const update=db.prepare("UPDATE teams SET logo=? WHERE id=? AND trim(COALESCE(logo,''))=''");
+  for(const row of rows){
+    const logo=inferTeamLogo(row.name);
+    if(logo)update.run(logo,row.id);
+  }
+}
+backfillTeamLogos();
+
 function syncTeamRecord(t,source='thesportsdb'){
   if(!t?.strTeam)return null;
   const name=String(t.strTeam).trim().replace(/\.(?:png|jpg|jpeg|webp|svg)$/i,'').trim(),country=normalizeTeamCountry(t.strCountry),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||'').trim();
@@ -483,7 +511,7 @@ if(x)results.push({...x,league:league.name});}
   res.json({ok:true,count:results.length,teams:results});
 });
 app.get('/api/teams/search',async(req,res)=>{const q=String(req.query.q||'').trim();if(q.length<2)return res.json([]);try{const r=await fetch(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(process.env.THESPORTSDB_API_KEY||'123')}/searchteams.php?t=${encodeURIComponent(q)}`);if(!r.ok)throw new Error('Fonte externa indisponível');const d=await r.json();res.json((d.teams||[]).filter(t=>String(t.strSport||'').toLowerCase()==='soccer').slice(0,20).map(t=>({external_id:String(t.idTeam||''),name:t.strTeam||'',country:t.strCountry||'',team_type:String(t.strTeam||'').toLowerCase().includes('national')?'national':'club',logo:t.strBadge||t.strLogo||'',source:'thesportsdb'})))}catch(e){res.status(502).json({error:'Não foi possível pesquisar a base de equipas online.'})}});
-app.post('/api/teams',(req,res)=>{const name=String(req.body.name||'').trim().replace(/\.(?:png|jpg|jpeg|webp|svg)$/i,'').trim(),country=normalizeTeamCountry(req.body.country),team_type=['club','club_reserve','national','national_youth','women'].includes(String(req.body.team_type))?String(req.body.team_type):'club',logo=String(req.body.logo||'').trim(),external_id=String(req.body.external_id||'').trim(),source=String(req.body.source||'manual').trim();if(!name)return res.status(400).json({error:'Indica o nome da equipa.'});const canonicalEntry=Object.entries(teamCanonicalAliases).find(([,aliases])=>aliases.some(a=>a.toLocaleLowerCase('pt-PT')===name.toLocaleLowerCase('pt-PT')));const canonicalName=canonicalEntry?canonicalEntry[0]:name;const existing=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY CASE WHEN user_id IS NULL THEN 0 ELSE 1 END,id LIMIT 1').get(canonicalName);if(existing)return res.json(existing);try{const i=db.prepare('INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(?,?,?,?,?,?,?)').run(req.user.id,canonicalName,country,team_type,logo,external_id,source);res.json(db.prepare('SELECT * FROM teams WHERE id=?').get(i.lastInsertRowid))}catch(e){if(String(e.message).includes('UNIQUE')){const row=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY id LIMIT 1').get(name);return res.json(row)}res.status(500).json({error:'Não foi possível criar a equipa.'})}});
+app.post('/api/teams',(req,res)=>{const name=String(req.body.name||'').trim().replace(/\.(?:png|jpg|jpeg|webp|svg)$/i,'').trim(),country=normalizeTeamCountry(req.body.country),team_type=['club','club_reserve','national','national_youth','women'].includes(String(req.body.team_type))?String(req.body.team_type):'club',logo=String(req.body.logo||'').trim()||inferTeamLogo(name),external_id=String(req.body.external_id||'').trim(),source=String(req.body.source||'manual').trim();if(!name)return res.status(400).json({error:'Indica o nome da equipa.'});const canonicalEntry=Object.entries(teamCanonicalAliases).find(([,aliases])=>aliases.some(a=>a.toLocaleLowerCase('pt-PT')===name.toLocaleLowerCase('pt-PT')));const canonicalName=canonicalEntry?canonicalEntry[0]:name;const existing=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY CASE WHEN user_id IS NULL THEN 0 ELSE 1 END,id LIMIT 1').get(canonicalName);if(existing)return res.json(existing);try{const i=db.prepare('INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(?,?,?,?,?,?,?)').run(req.user.id,canonicalName,country,team_type,logo,external_id,source);res.json(db.prepare('SELECT * FROM teams WHERE id=?').get(i.lastInsertRowid))}catch(e){if(String(e.message).includes('UNIQUE')){const row=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) ORDER BY id LIMIT 1').get(name);return res.json(row)}res.status(500).json({error:'Não foi possível criar a equipa.'})}});
 app.put('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const row=db.prepare('SELECT * FROM teams WHERE id=? AND user_id=?').get(id,req.user.id);if(!row)return res.status(404).json({error:'Equipa não encontrada.'});const name=String(req.body.name||row.name).trim();if(!name)return res.status(400).json({error:'Indica o nome da equipa.'});db.prepare('UPDATE teams SET name=?,country=?,team_type=?,logo=? WHERE id=? AND user_id=?').run(name,String(req.body.country||row.country||''),String(req.body.team_type||row.team_type),String(req.body.logo||row.logo||''),id,req.user.id);res.json(db.prepare('SELECT * FROM teams WHERE id=?').get(id))});
 app.delete('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const r=db.prepare('DELETE FROM teams WHERE id=? AND user_id=?').run(id,req.user.id);if(!r.changes)return res.status(404).json({error:'Equipa não encontrada.'});res.json({ok:true})});
 async function preloadTeamCatalog(){
