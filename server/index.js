@@ -228,22 +228,50 @@ const teamCanonicalAliases={
   'Benfica':['Benfica','SL Benfica','SLB','Benfica B'],
   'FC Porto':['FC Porto','Porto','F.C. Porto','FC Porto B']
 };
-function normalizeTeamCatalog(){
+function cleanupTeamCatalog(){
   const tx=db.transaction(()=>{
+    const rows=db.prepare("SELECT * FROM teams WHERE user_id IS NULL ORDER BY id").all();
+    const seen=new Map();
+    for(const row of rows){
+      const cleaned=String(row.name||'').trim().replace(/\\.(?:png|jpg|jpeg|webp)$/i,'').trim();
+      if(!cleaned)continue;
+      if(cleaned!==row.name)db.prepare("UPDATE teams SET name=? WHERE id=?").run(cleaned,row.id);
+      const key=cleaned.toLocaleLowerCase('pt-PT');
+      const current=seen.get(key);
+      if(!current){seen.set(key,{...row,name:cleaned});continue}
+      const target=current.logo?current:(row.logo?row:current);
+      const duplicate=target.id===current.id?row:current;
+      const country=String(target.country||duplicate.country||'').trim();
+      const logo=String(target.logo||duplicate.logo||'').trim();
+      const externalId=String(target.external_id||duplicate.external_id||'').trim();
+      db.prepare("UPDATE teams SET name=?,country=?,logo=?,external_id=?,source=COALESCE(NULLIF(source,''),?) WHERE id=?").run(cleaned,country,logo,externalId,target.source||duplicate.source||'catalog',target.id);
+      const translations=db.prepare("SELECT language,name FROM team_translations WHERE team_id=?").all(duplicate.id);
+      for(const t of translations)db.prepare("INSERT INTO team_translations(team_id,language,name) VALUES(?,?,?) ON CONFLICT(team_id,language) DO UPDATE SET name=excluded.name").run(target.id,t.language,t.name);
+      db.prepare("DELETE FROM team_translations WHERE team_id=?").run(duplicate.id);
+      db.prepare("DELETE FROM teams WHERE id=?").run(duplicate.id);
+      seen.set(key,{...target,name:cleaned,country,logo,external_id:externalId});
+    }
     for(const [canonical,aliases] of Object.entries(teamCanonicalAliases)){
       const placeholders=aliases.map(()=>'?').join(',');
-      const rows=db.prepare(`SELECT * FROM teams WHERE user_id IS NULL AND lower(trim(name)) IN (${placeholders}) ORDER BY CASE WHEN lower(trim(name))=lower(?) THEN 0 ELSE 1 END,id`).all(...aliases,canonical);
-      if(!rows.length)continue;
-      const target=rows.find(r=>r.name.trim().toLowerCase()===canonical.toLowerCase())||rows.find(r=>String(r.logo||'').trim())||rows[0];
-      const logo=rows.find(r=>String(r.logo||'').trim())?.logo||target.logo||'';
-      const country=rows.find(r=>String(r.country||'').trim())?.country||target.country||'';
-      const externalId=rows.find(r=>String(r.external_id||'').trim())?.external_id||target.external_id||'';
-      db.prepare('UPDATE teams SET name=?,country=?,logo=?,external_id=?,source=CASE WHEN source=\'manual\' THEN \'thesportsdb\' ELSE source END WHERE id=?').run(canonical,country,logo,externalId,target.id);
-      for(const row of rows){if(row.id===target.id)continue;db.prepare('UPDATE team_translations SET team_id=? WHERE team_id=?').run(target.id,row.id);db.prepare('DELETE FROM teams WHERE id=?').run(row.id);}
+      const rows2=db.prepare(`SELECT * FROM teams WHERE user_id IS NULL AND lower(trim(name)) IN (${placeholders}) ORDER BY CASE WHEN lower(trim(name))=lower(?) THEN 0 ELSE 1 END,id`).all(...aliases,canonical);
+      if(!rows2.length)continue;
+      const target=rows2.find(r=>r.name.trim().toLowerCase()===canonical.toLowerCase())||rows2.find(r=>String(r.logo||'').trim())||rows2[0];
+      const logo=rows2.find(r=>String(r.logo||'').trim())?.logo||target.logo||'';
+      const country=rows2.find(r=>String(r.country||'').trim())?.country||target.country||'';
+      const externalId=rows2.find(r=>String(r.external_id||'').trim())?.external_id||target.external_id||'';
+      db.prepare("UPDATE teams SET name=?,country=?,logo=?,external_id=? WHERE id=?").run(canonical,country,logo,externalId,target.id);
+      for(const row of rows2){
+        if(row.id===target.id)continue;
+        const translations=db.prepare("SELECT language,name FROM team_translations WHERE team_id=?").all(row.id);
+        for(const t of translations)db.prepare("INSERT INTO team_translations(team_id,language,name) VALUES(?,?,?) ON CONFLICT(team_id,language) DO UPDATE SET name=excluded.name").run(target.id,t.language,t.name);
+        db.prepare("DELETE FROM team_translations WHERE team_id=?").run(row.id);
+        db.prepare("DELETE FROM teams WHERE id=?").run(row.id);
+      }
     }
   });
   tx();
 }
+cleanupTeamCatalog();
 normalizeTeamCatalog();
 function syncTeamRecord(t,source='thesportsdb'){
   if(!t?.strTeam)return null;
