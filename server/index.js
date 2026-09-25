@@ -210,7 +210,7 @@ app.post('/api/teams/seed-popular',async(req,res)=>{
     try{
       const r=await fetch(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/lookupteam.php?id=${id}`);
       if(!r.ok)continue; const d=await r.json(); const t=d.teams?.[0]; if(!t?.strTeam)continue;
-      const name=String(t.strTeam).trim(),country=String(t.strCountry||'').trim(),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||id);
+      const name=String(t.strTeam).trim(),country=normalizeTeamCountry(t.strCountry),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||id);
       const existing=db.prepare('SELECT id FROM teams WHERE lower(trim(name))=lower(trim(?)) LIMIT 1').get(name);
       if(existing){db.prepare('UPDATE teams SET country=COALESCE(NULLIF(country,\'\'),?),logo=COALESCE(NULLIF(logo,\'\'),?),external_id=COALESCE(NULLIF(external_id,\'\'),?),source=CASE WHEN source=\'manual\' THEN \'thesportsdb\' ELSE source END WHERE id=?').run(country,logo,external_id,existing.id);results.push({name,updated:true});}
       else {db.prepare('INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(NULL,?,?,?,?,?,\'thesportsdb\')').run(name,country,'club',logo,external_id);results.push({name,added:true});}
@@ -235,6 +235,21 @@ const popularLeagues=[
   {id:4346,name:'MLS',country:'United States'},
   {id:4350,name:'Mexican Primera Division',country:'Mexico'}
 ];
+const teamCountryAliases={
+  'Netherlands':'Países Baixos','The Netherlands':'Países Baixos','Nederland':'Países Baixos','Holland':'Países Baixos',
+  'Belgium':'Bélgica','Deutschland':'Alemanha','Germany':'Alemanha','Spain':'Espanha','España':'Espanha',
+  'England':'Inglaterra','France':'França','Italy':'Itália','Italia':'Itália','Portugal':'Portugal',
+  'Turkey':'Turquia','Türkiye':'Turquia','Greece':'Grécia','Scotland':'Escócia','Austria':'Áustria',
+  'Switzerland':'Suíça','Poland':'Polónia','Czech Republic':'República Checa','Czechia':'República Checa',
+  'Romania':'Roménia','Croatia':'Croácia','Serbia':'Sérvia','Ukraine':'Ucrânia','Norway':'Noruega',
+  'Sweden':'Suécia','Denmark':'Dinamarca','Finland':'Finlândia','Ireland':'Irlanda','Iceland':'Islândia',
+  'Brazil':'Brasil','Argentina':'Argentina','United States':'EUA','USA':'EUA','Mexico':'México',
+  'Canada':'Canadá','Japan':'Japão','South Korea':'Coreia do Sul','China':'China','Australia':'Austrália',
+  'New Zealand':'Nova Zelândia','South Africa':'África do Sul','Morocco':'Marrocos','Algeria':'Argélia',
+  'Tunisia':'Tunísia','Egypt':'Egipto','Saudi Arabia':'Arábia Saudita','United Arab Emirates':'Emirados Árabes Unidos',
+  'Qatar':'Catar','Israel':'Israel','Russia':'Rússia'
+};
+const normalizeTeamCountry=name=>{const raw=String(name||'').trim();if(!raw)return '';const hit=Object.entries(teamCountryAliases).find(([k])=>k.toLocaleLowerCase('en')===raw.toLocaleLowerCase('en'));return hit?hit[1]:raw};
 const teamCanonicalAliases={
   'Benfica':['Benfica','SL Benfica','SLB','Benfica B'],
   'FC Porto':['FC Porto','Porto','F.C. Porto','FC Porto B']
@@ -249,14 +264,15 @@ function cleanupTeamCatalog(){
     const seen=new Map();
     for(const row of rows){
       const cleaned=String(row.name||'').trim().replace(/\.(?:png|jpg|jpeg|webp)$/i,'').trim();
+      const normalizedCountry=normalizeTeamCountry(row.country);
       if(!cleaned)continue;
-      if(cleaned!==row.name)db.prepare("UPDATE teams SET name=? WHERE id=?").run(cleaned,row.id);
+      if(cleaned!==row.name||normalizedCountry!==String(row.country||''))db.prepare("UPDATE teams SET name=?,country=? WHERE id=?").run(cleaned,normalizedCountry,row.id);
       const key=String(row.user_id??'global')+':'+cleaned.toLocaleLowerCase('pt-PT');
       const current=seen.get(key);
       if(!current){seen.set(key,{...row,name:cleaned});continue}
       const target=current.logo?current:(row.logo?row:current);
       const duplicate=target.id===current.id?row:current;
-      const country=String(target.country||duplicate.country||'').trim();
+      const country=normalizeTeamCountry(target.country||duplicate.country);
       const logo=String(target.logo||duplicate.logo||'').trim();
       const externalId=String(target.external_id||duplicate.external_id||'').trim();
       db.prepare("UPDATE teams SET name=?,country=?,logo=?,external_id=?,source=COALESCE(NULLIF(source,''),?) WHERE id=?").run(cleaned,country,logo,externalId,target.source||duplicate.source||'catalog',target.id);
