@@ -269,17 +269,19 @@ const staticLogoCountryMap={
   'Serbia':'Sérvia','Spain':'Espanha','Sweden':'Suécia','Switzerland':'Suíça',
   'Türkiye':'Turquia','Ukraine':'Ucrânia'
 };
-const staticLogoSource='https://github.com/luukhopman/football-logos';
 const staticLogoTreeUrl='https://api.github.com/repos/luukhopman/football-logos/git/trees/master?recursive=1';
 const staticLogoRawBase='https://raw.githubusercontent.com/luukhopman/football-logos/master/';
 
 async function preloadStaticFootballLogos(){
   const cacheKey='football_logos_manifest_v1';
+  const cacheUpdatedKey='football_logos_manifest_v1_updated_at';
   const cache=db.prepare("SELECT value FROM app_settings WHERE key=?").get(cacheKey);
+  const cacheUpdated=db.prepare("SELECT value FROM app_settings WHERE key=?").get(cacheUpdatedKey);
+  const cacheAge=cacheUpdated?Date.now()-Number(cacheUpdated.value):Infinity;
   let entries=[];
   try{
     const cached=cache?JSON.parse(cache.value):null;
-    if(Array.isArray(cached)&&cached.length)entries=cached;
+    if(Array.isArray(cached)&&cached.length&&cacheAge<7*24*60*60*1000)entries=cached;
   }catch(e){}
   if(!entries.length){
     try{
@@ -300,7 +302,10 @@ async function preloadStaticFootballLogos(){
             logo:staticLogoRawBase+parts.map(encodeURIComponent).join('/')
           };
         }).filter(Boolean);
-        if(entries.length)db.prepare("INSERT INTO app_settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(cacheKey,JSON.stringify(entries));
+        if(entries.length){
+          db.prepare("INSERT INTO app_settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(cacheKey,JSON.stringify(entries));
+          db.prepare("INSERT INTO app_settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(cacheUpdatedKey,String(Date.now()));
+        }
       }
     }catch(e){console.error('Catálogo estático de logos:',e.message)}
   }
@@ -314,6 +319,7 @@ async function preloadStaticFootballLogos(){
     return count;
   });
   const count=upsert(entries);
+  normalizeTeamCatalog();
   const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count;
   return {count,total};
 }
