@@ -273,38 +273,49 @@ const staticLogoTreeUrl='https://api.github.com/repos/luukhopman/football-logos/
 const staticLogoRawBase='https://raw.githubusercontent.com/luukhopman/football-logos/master/';
 
 async function preloadSecondaryFootballCatalog(){
-  const token=String(process.env.SPORTMONKS_API_TOKEN||'').trim();
-  if(!token)return {count:0,total:db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count,skipped:true};
-  const leaguesUrl='https://api.sportmonks.com/v3/football/leagues?api_token='+encodeURIComponent(token);
-  let leagues=[];
+  const manifestUrl='https://raw.githubusercontent.com/hixcoder/football-teams-flags/main/football_teams.json';
+  const cacheKey='football_teams_flags_manifest_v1';
+  const cacheUpdatedKey='football_teams_flags_manifest_v1_updated_at';
+  const cache=db.prepare("SELECT value FROM app_settings WHERE key=?").get(cacheKey);
+  const cacheUpdated=db.prepare("SELECT value FROM app_settings WHERE key=?").get(cacheUpdatedKey);
+  const cacheAge=cacheUpdated?Date.now()-Number(cacheUpdated.value):Infinity;
+  let entries=[];
   try{
-    const r=await fetch(leaguesUrl);
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const d=await r.json();
-    leagues=Array.isArray(d.data)?d.data:[];
-  }catch(e){
-    console.error('Catálogo Sportmonks (ligas):',e.message);
-    return {count:0,total:db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count,skipped:false};
-  }
-  const wantedCountries=new Set(['Brazil','Argentina','United States','Mexico','Japan','South Korea','China','Australia','Saudi Arabia','United Arab Emirates','India','South Africa','Egypt','Morocco','Algeria','Nigeria','Ghana','Tunisia','Portugal','Spain','England','Germany','Italy','France','Netherlands','Belgium','Scotland','Turkey']);
-  const selected=leagues.filter(l=>wantedCountries.has(String(l.country?.name||l.country_name||'').trim())||/Serie B|Série B|Primera Nacional|Primera B|USL|Liga MX|Expansion|J2|J3|K League|Chinese Super League|Saudi|Pro League|Indian Super|I-League|South African|Egyptian|Moroccan|Algerian|Nigerian|Ghanaian|Tunisian|Liga 3|Primera Federacion|National League|3\. Liga|Serie C|Serie D|Championship|Ligue 2|2\. Bundesliga|Serie B|Eerste Divisie|Challenger Pro|1\. Liga|2\. Liga/i.test(String(l.name||'')));
-  const unique=[...new Map(selected.map(l=>[String(l.id),l])).values()];
-  let count=0;
-  for(const league of unique){
+    const cached=cache?JSON.parse(cache.value):null;
+    if(Array.isArray(cached)&&cached.length&&cacheAge<7*24*60*60*1000)entries=cached;
+  }catch(e){}
+  if(!entries.length){
     try{
-      const url='https://api.sportmonks.com/v3/football/teams/seasons/'+encodeURIComponent(String(league.current_season_id||league.season_id||''))+'?api_token='+encodeURIComponent(token);
-      if(!league.current_season_id&&!league.season_id)continue;
-      const r=await fetch(url);
-      if(!r.ok)continue;
+      const r=await fetch(manifestUrl);
+      if(!r.ok)throw new Error('HTTP '+r.status);
       const d=await r.json();
-      for(const t of (d.data||[])){
-        const x=syncTeamRecord({strTeam:t.name,strCountry:t.country?.name||'',strBadge:t.image_path||'',idTeam:'sportmonks:'+t.id},'sportmonks');
-        if(x)count++;
+      entries=(Array.isArray(d)?d:[]).map(t=>({
+        name:String(t.name||'').trim(),
+        country:String(t.country||'').trim(),
+        logo:String(t.logoUrl||'').trim()
+      })).filter(t=>t.name&&t.country);
+      if(entries.length){
+        db.prepare("INSERT INTO app_settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(cacheKey,JSON.stringify(entries));
+        db.prepare("INSERT INTO app_settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(cacheUpdatedKey,String(Date.now()));
       }
-    }catch(e){}
+    }catch(e){
+      console.error('Catálogo mundial GitHub:',e.message);
+    }
   }
+  if(!entries.length)return {count:0,total:db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count};
+  const upsert=db.transaction(rows=>{
+    let count=0;
+    for(const row of rows){
+      const externalId='hixcoder:'+row.country+':'+row.name;
+      const x=syncTeamRecord({strTeam:row.name,strCountry:row.country,strBadge:row.logo,idTeam:externalId},'hixcoder-football-teams');
+      if(x)count++;
+    }
+    return count;
+  });
+  const count=upsert(entries);
   normalizeTeamCatalog();
-  return {count,total:db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count,leagues:unique.length};
+  const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count;
+  return {count,total,source_count:entries.length};
 }
 
 async function preloadStaticFootballLogos(){
