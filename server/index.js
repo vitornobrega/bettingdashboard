@@ -334,7 +334,7 @@ async function preloadStaticFootballLogos(){
       const r=await fetch(staticLogoTreeUrl);
       if(r.ok){
         const d=await r.json();
-        entries=(d.tree||[]).filter(x=>x.type==='blob'&&/^logos\\/[^/]+\\/[^/]+\\.png$/u.test(x.path)).map(x=>{
+        entries=(d.tree||[]).filter(x=>x.type==='blob'&&/^logos\/[^/]+\/[^/]+\.png$/u.test(x.path)).map(x=>{
           const parts=x.path.split('/');
           const folder=parts[1]||'';
           const dash=folder.indexOf(' - ');
