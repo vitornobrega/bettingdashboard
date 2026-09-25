@@ -245,18 +245,77 @@ function normalizeTeamCatalog(){
   tx();
 }
 normalizeTeamCatalog();
-function syncTeamRecord(t){
+function syncTeamRecord(t,source='thesportsdb'){
   if(!t?.strTeam)return null;
   const name=String(t.strTeam).trim(),country=String(t.strCountry||'').trim(),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||'').trim();
-  const globalByExternal=external_id?db.prepare('SELECT * FROM teams WHERE user_id IS NULL AND external_id=? LIMIT 1').get(external_id):null;
-  const globalByName=db.prepare('SELECT * FROM teams WHERE user_id IS NULL AND lower(trim(name))=lower(trim(?)) AND lower(trim(COALESCE(country,'')))=lower(trim(?)) LIMIT 1').get(name,country);
+  if(!name)return null;
+  const globalByExternal=external_id?db.prepare("SELECT * FROM teams WHERE user_id IS NULL AND external_id=? LIMIT 1").get(external_id):null;
+  const globalByName=db.prepare("SELECT * FROM teams WHERE user_id IS NULL AND lower(trim(name))=lower(trim(?)) AND lower(trim(COALESCE(country,'')))=lower(trim(?)) LIMIT 1").get(name,country);
   const existing=globalByExternal||globalByName;
   if(existing){
-    db.prepare('UPDATE teams SET country=CASE WHEN ?<>'' THEN ? ELSE country END,logo=CASE WHEN ?<>'' THEN ? ELSE logo END,external_id=CASE WHEN ?<>'' THEN ? ELSE external_id END,source=CASE WHEN source=''manual'' THEN ''thesportsdb'' ELSE source END WHERE id=?').run(country,country,logo,logo,external_id,external_id,existing.id);
+    db.prepare("UPDATE teams SET country=CASE WHEN ?<>'' THEN ? ELSE country END,logo=CASE WHEN ?<>'' THEN ? ELSE logo END,external_id=CASE WHEN ?<>'' THEN ? ELSE external_id END,source=CASE WHEN COALESCE(source,'') IN ('','manual') THEN ? ELSE source END WHERE id=?").run(country,country,logo,logo,external_id,external_id,source,existing.id);
     return {name,updated:true,id:existing.id,shared:true};
   }
-  const i=db.prepare('INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(NULL,?,?,?,?,?,''thesportsdb'')').run(name,country,'club',logo,external_id);
+  const i=db.prepare("INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(NULL,?,?,?,?,?,?)").run(name,country,'club',logo,external_id,source);
   return {name,added:true,id:i.lastInsertRowid,shared:true};
+}
+
+const staticLogoCountryMap={
+  'Austria':'Áustria','Belgium':'Bélgica','Bulgaria':'Bulgária','Croatia':'Croácia',
+  'Czech Republic':'República Checa','Denmark':'Dinamarca','England':'Inglaterra',
+  'France':'França','Germany':'Alemanha','Greece':'Grécia','Israel':'Israel',
+  'Italy':'Itália','Netherlands':'Países Baixos','Norway':'Noruega','Poland':'Polónia',
+  'Portugal':'Portugal','Romania':'Roménia','Russia':'Rússia','Scotland':'Escócia',
+  'Serbia':'Sérvia','Spain':'Espanha','Sweden':'Suécia','Switzerland':'Suíça',
+  'Türkiye':'Turquia','Ukraine':'Ucrânia'
+};
+const staticLogoSource='https://github.com/luukhopman/football-logos';
+const staticLogoTreeUrl='https://api.github.com/repos/luukhopman/football-logos/git/trees/master?recursive=1';
+const staticLogoRawBase='https://raw.githubusercontent.com/luukhopman/football-logos/master/';
+
+async function preloadStaticFootballLogos(){
+  const cacheKey='football_logos_manifest_v1';
+  const cache=db.prepare("SELECT value FROM app_settings WHERE key=?").get(cacheKey);
+  let entries=[];
+  try{
+    const cached=cache?JSON.parse(cache.value):null;
+    if(Array.isArray(cached)&&cached.length)entries=cached;
+  }catch(e){}
+  if(!entries.length){
+    try{
+      const r=await fetch(staticLogoTreeUrl);
+      if(r.ok){
+        const d=await r.json();
+        entries=(d.tree||[]).filter(x=>x.type==='blob'&&/^logos\\/[^/]+\\/[^/]+\\.png$/u.test(x.path)).map(x=>{
+          const parts=x.path.split('/');
+          const folder=parts[1]||'';
+          const dash=folder.indexOf(' - ');
+          const countryKey=dash>0?folder.slice(0,dash):folder;
+          const country=staticLogoCountryMap[countryKey];
+          const name=parts[2].replace(/\\.png$/i,'').trim();
+          if(!country||!name)return null;
+          return {
+            name,country,
+            external_id:'football-logos:'+country+':'+name,
+            logo:staticLogoRawBase+parts.map(encodeURIComponent).join('/')
+          };
+        }).filter(Boolean);
+        if(entries.length)db.prepare("INSERT INTO app_settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(cacheKey,JSON.stringify(entries));
+      }
+    }catch(e){console.error('Catálogo estático de logos:',e.message)}
+  }
+  if(!entries.length)return {count:0,total:db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count};
+  const upsert=db.transaction(rows=>{
+    let count=0;
+    for(const row of rows){
+      const x=syncTeamRecord({strTeam:row.name,strCountry:row.country,strBadge:row.logo,idTeam:row.external_id},'football-logos');
+      if(x)count++;
+    }
+    return count;
+  });
+  const count=upsert(entries);
+  const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count;
+  return {count,total};
 }
 app.post('/api/teams/seed-leagues',async(req,res)=>{
   const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
@@ -307,6 +366,7 @@ app.post('/api/teams',(req,res)=>{const name=String(req.body.name||'').trim(),co
 app.put('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const row=db.prepare('SELECT * FROM teams WHERE id=? AND user_id=?').get(id,req.user.id);if(!row)return res.status(404).json({error:'Equipa não encontrada.'});const name=String(req.body.name||row.name).trim();if(!name)return res.status(400).json({error:'Indica o nome da equipa.'});db.prepare('UPDATE teams SET name=?,country=?,team_type=?,logo=? WHERE id=? AND user_id=?').run(name,String(req.body.country||row.country||''),String(req.body.team_type||row.team_type),String(req.body.logo||row.logo||''),id,req.user.id);res.json(db.prepare('SELECT * FROM teams WHERE id=?').get(id))});
 app.delete('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const r=db.prepare('DELETE FROM teams WHERE id=? AND user_id=?').run(id,req.user.id);if(!r.changes)return res.status(404).json({error:'Equipa não encontrada.'});res.json({ok:true})});
 async function preloadTeamCatalog(){normalizeTeamCatalog();
+  const staticCatalog=await preloadStaticFootballLogos();
   const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
   const leagues=[...popularLeagues,...secondDivisionLeagues];
   const addLeagueTeams=async(league)=>{
@@ -340,7 +400,7 @@ async function preloadTeamCatalog(){normalizeTeamCatalog();
   }
 
   const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count;
-  return {ok:true,count:results.length,total,teams:results};
+  return {ok:true,count:results.length+staticCatalog.count,total,static_count:staticCatalog.count,teams:results};
 }
 app.post('/api/teams/seed-all',async(req,res)=>{try{res.json(await preloadTeamCatalog())}catch(e){console.error('seed-all',e);res.status(500).json({error:'Não foi possível pré-carregar o catálogo de equipas.'})}});
 app.get('/api/admin/competition-catalog',requireAdmin,(req,res)=>{const country=db.prepare('SELECT name FROM countries WHERE id=?').get(req.query.country_id);res.json(country&&Array.isArray(catalog[country.name])?catalog[country.name]:[])});app.get('/api/admin/competition-catalog-all',requireAdmin,(req,res)=>{const rows=[];for(const country of all('SELECT id,name FROM countries WHERE user_id IS NULL OR user_id=? ORDER BY name',req.user.id))for(const name of (catalog[country.name]||[]))rows.push({country_id:country.id,country_name:country.name,name});res.json(rows)});
