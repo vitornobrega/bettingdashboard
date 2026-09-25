@@ -510,3 +510,5 @@ html[data-theme='dark'] .stake-warning .material-symbols-outlined{color:#fbbf24}
 
 .team-country-logo{display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;background:#fff}
 .team-country-logo img{width:30px;height:30px;object-fit:contain}
+
+.side-menu.collapsed .nav-section{position:relative}.side-menu.collapsed .nav-submenu{position:absolute;left:calc(100% + 8px);top:0;z-index:100;min-width:190px;margin:0;padding:8px;background:var(--card,#1f2937);border:1px solid #3f4b5e;border-left:1px solid #3f4b5e;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.22)}.side-menu.collapsed .nav-submenu button{justify-content:flex-start!important;padding:8px 10px!important;font-size:13px!important}
