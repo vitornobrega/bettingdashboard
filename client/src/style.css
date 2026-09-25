@@ -550,3 +550,5 @@ html[data-theme='dark'] .stake-warning .material-symbols-outlined{color:#fbbf24}
 .side-menu.collapsed .nav-submenu button:hover,.side-menu.collapsed .nav-submenu button.active{background:#334155!important;color:#fff!important}
 .team-country-image{object-fit:contain;background:#fff;border-radius:4px}
 .team-suggestion-country{object-fit:contain;background:#fff;border-radius:4px}
+
+.nav-group{position:relative}.nav-children{display:flex;flex-direction:column;gap:4px;padding:4px 0 6px 42px}.nav-children button{border:0;background:transparent;color:#94a3b8;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer}.nav-children button:hover,.nav-children button.active{background:#263244;color:#fff}.side-menu.collapsed .nav-group.open .nav-children{position:absolute;left:calc(100% + 8px);top:0;min-width:170px;padding:8px;background:#17202e;border:1px solid #334155;border-radius:10px;box-shadow:0 12px 28px rgba(0,0,0,.28);z-index:20}.side-menu.collapsed .nav-group.open .nav-children button{padding:9px 11px}.side-menu.collapsed .nav-group.open .nav-parent{background:#263244;color:#fff}.side-menu.collapsed .collapsed-config-toggle{display:none!important}
