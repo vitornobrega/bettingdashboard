@@ -135,7 +135,7 @@ const isoCountries=[{"code":"AW","name":"Aruba"},{"code":"AF","name":"Afghanista
 for(const c of isoCountries){
   const flagLogo='https://flagcdn.com/w80/'+String(c.code||'').toLowerCase()+'.png';
   const existing=db.prepare('SELECT id FROM countries WHERE upper(code)=upper(?) OR lower(name)=lower(?) LIMIT 1').get(c.code,c.name);
-  if(existing) db.prepare('UPDATE countries SET code=?,logo=CASE WHEN COALESCE(logo,'')='' THEN ? ELSE logo END WHERE id=?').run(c.code,flagLogo,existing.id);
+  if(existing) db.prepare("UPDATE countries SET code=?,logo=CASE WHEN COALESCE(logo,'')='' THEN ? ELSE logo END WHERE id=?").run(c.code,flagLogo,existing.id);
   else db.prepare('INSERT INTO countries(name,logo,code) VALUES(?,?,?)').run(c.name,flagLogo,c.code);
 }
 // Normalize country catalogue: merge translated catalog names with ISO seed names and keep one row per country.
