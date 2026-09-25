@@ -257,8 +257,13 @@ const teamCanonicalAliases={
   'Excelsior':['Excelsior','Excelsior Rotterdam','SBV Excelsior'],
   'Feyenoord':['Feyenoord','Feyenoord Rotterdam'],
   'Benfica':['Benfica','SL Benfica','SLB'],
-  'FC Porto':['FC Porto','Porto','F.C. Porto']
+  'FC Porto':['FC Porto','Porto','F.C. Porto'],
+  'Atlético Madrid':['Atlético Madrid','Atletico Madrid','Club Atlético de Madrid','Atletico de Madrid','Atlético de Madrid','Atletico Madrid CF'],
+  'Atalanta':['Atalanta','Atalanta BC','Atalanta Bergamasca Calcio'],
+  'Arsenal':['Arsenal','Arsenal FC','Arsenal F.C.','Arsenal London'],
+  'River Plate':['River Plate','Club Atlético River Plate','CA River Plate','River Plate FC','River']
 };
+const teamNameKey=name=>String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/&/g,'and').replace(/[^a-z0-9]+/gi,'').toLowerCase();
 function cleanupTeamCatalog(){
   // A normalização (ex.: "FC Porto.png" -> "FC Porto") pode colidir
   // com o índice único antes de termos oportunidade de fundir os registos.
@@ -277,7 +282,7 @@ function cleanupTeamCatalog(){
         const tn=String(tr.name||'').trim().replace(/\.(?:png|jpg|jpeg|webp|svg)$/i,'').trim();
         if(tn!==String(tr.name||''))db.prepare("UPDATE team_translations SET name=? WHERE id=?").run(tn,tr.id);
       }
-      const key=String(row.user_id??'global')+':'+cleaned.toLocaleLowerCase('pt-PT');
+      const key=String(row.user_id??'global')+':'+teamNameKey(cleaned);
       const current=seen.get(key);
       if(!current){seen.set(key,{...row,name:cleaned});continue}
       const target=current.logo?current:(row.logo?row:current);
@@ -293,8 +298,7 @@ function cleanupTeamCatalog(){
       seen.set(key,{...target,name:cleaned,country,logo,external_id:externalId});
     }
     for(const [canonical,aliases] of Object.entries(teamCanonicalAliases)){
-      const placeholders=aliases.map(()=>'?').join(',');
-      const rows2=db.prepare(`SELECT * FROM teams WHERE user_id IS NULL AND lower(trim(name)) IN (${placeholders}) ORDER BY CASE WHEN lower(trim(name))=lower(?) THEN 0 ELSE 1 END,id`).all(...aliases,canonical);
+      const rows2=db.prepare("SELECT * FROM teams WHERE user_id IS NULL ORDER BY id").all().filter(r=>aliases.some(a=>teamNameKey(r.name)===teamNameKey(a)));
       if(!rows2.length)continue;
       const target=rows2.find(r=>r.name.trim().toLowerCase()===canonical.toLowerCase())||rows2.find(r=>String(r.logo||'').trim())||rows2[0];
       const logo=rows2.find(r=>String(r.logo||'').trim())?.logo||target.logo||'';
@@ -341,12 +345,13 @@ function backfillTeamLogos(){
 }
 backfillTeamLogos();
 
+try{db.function('team_name_key',teamNameKey)}catch(e){}
 function syncTeamRecord(t,source='thesportsdb'){
   if(!t?.strTeam)return null;
   const name=String(t.strTeam).trim().replace(/\.(?:png|jpg|jpeg|webp|svg)$/i,'').trim(),country=normalizeTeamCountry(t.strCountry),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||'').trim();
   if(!name)return null;
   const globalByExternal=external_id?db.prepare("SELECT * FROM teams WHERE user_id IS NULL AND external_id=? LIMIT 1").get(external_id):null;
-  const globalByName=db.prepare("SELECT * FROM teams WHERE user_id IS NULL AND lower(trim(name))=lower(trim(?)) AND lower(trim(COALESCE(country,'')))=lower(trim(?)) LIMIT 1").get(name,country);
+  const globalByName=db.prepare("SELECT * FROM teams WHERE user_id IS NULL AND team_name_key(name)=team_name_key(?) AND lower(trim(COALESCE(country,'')))=lower(trim(?)) LIMIT 1").get(name,country);
   const existing=globalByExternal||globalByName;
   if(existing){
     db.prepare("UPDATE teams SET country=CASE WHEN ?<>'' THEN ? ELSE country END,logo=CASE WHEN ?<>'' THEN ? ELSE logo END,external_id=CASE WHEN ?<>'' THEN ? ELSE external_id END,source=CASE WHEN COALESCE(source,'') IN ('','manual') THEN ? ELSE source END WHERE id=?").run(country,country,logo,logo,external_id,external_id,source,existing.id);
