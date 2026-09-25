@@ -260,7 +260,9 @@ const teamCanonicalAliases={
   'FC Porto':['FC Porto','Porto','F.C. Porto'],
   'Atlético Madrid':['Atlético Madrid','Atletico Madrid','Club Atlético de Madrid','Atletico de Madrid','Atlético de Madrid','Atletico Madrid CF'],
   'Atalanta':['Atalanta','Atalanta BC','Atalanta Bergamasca Calcio'],
-  'Arsenal':['Arsenal','Arsenal FC','Arsenal F.C.','Arsenal London'],
+  'Arsenal':['Arsenal','Arsenal FC','Arsenal F.C.','Arsenal London','Arsenal Football Club'],
+  'Everton':['Everton','Everton FC','Everton F.C.','Everton Football Club'],
+  'Fulham':['Fulham','Fulham FC','Fulham F.C.','Fulham Football Club'],
   'River Plate':['River Plate','Club Atlético River Plate','CA River Plate','River Plate FC','River']
 };
 const teamNameKey=name=>String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/&/g,'and').replace(/[^a-z0-9]+/gi,'').toLowerCase();
@@ -520,7 +522,7 @@ app.put('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const row=db
 app.delete('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const r=db.prepare('DELETE FROM teams WHERE id=? AND user_id=?').run(id,req.user.id);if(!r.changes)return res.status(404).json({error:'Equipa não encontrada.'});res.json({ok:true})});
 async function preloadKnownTeamLogos(){
   const key=process.env.THESPORTSDB_API_KEY||'123';
-  const targets=['Atlético Madrid','Atalanta','Arsenal','River Plate'];
+  const targets=['Atlético Madrid','Atalanta','Arsenal','Everton','Fulham','River Plate'];
   for(const target of targets){
     try{
       const aliases=teamCanonicalAliases[target]||[target];
