@@ -247,14 +247,16 @@ function normalizeTeamCatalog(){
 normalizeTeamCatalog();
 function syncTeamRecord(t){
   if(!t?.strTeam)return null;
-  const name=String(t.strTeam).trim(),country=String(t.strCountry||'').trim(),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||'');
-  const existing=db.prepare('SELECT * FROM teams WHERE lower(trim(name))=lower(trim(?)) LIMIT 1').get(name);
+  const name=String(t.strTeam).trim(),country=String(t.strCountry||'').trim(),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||'').trim();
+  const globalByExternal=external_id?db.prepare('SELECT * FROM teams WHERE user_id IS NULL AND external_id=? LIMIT 1').get(external_id):null;
+  const globalByName=db.prepare('SELECT * FROM teams WHERE user_id IS NULL AND lower(trim(name))=lower(trim(?)) AND lower(trim(COALESCE(country,'')))=lower(trim(?)) LIMIT 1').get(name,country);
+  const existing=globalByExternal||globalByName;
   if(existing){
-    db.prepare('UPDATE teams SET country=CASE WHEN ?<>\'\' THEN ? ELSE country END,logo=CASE WHEN ?<>\'\' THEN ? ELSE logo END,external_id=CASE WHEN ?<>\'\' THEN ? ELSE external_id END,source=CASE WHEN source=\'manual\' THEN \'thesportsdb\' ELSE source END WHERE id=?').run(country,country,logo,logo,external_id,external_id,existing.id);
-    return {name,updated:true};
+    db.prepare('UPDATE teams SET country=CASE WHEN ?<>'' THEN ? ELSE country END,logo=CASE WHEN ?<>'' THEN ? ELSE logo END,external_id=CASE WHEN ?<>'' THEN ? ELSE external_id END,source=CASE WHEN source=''manual'' THEN ''thesportsdb'' ELSE source END WHERE id=?').run(country,country,logo,logo,external_id,external_id,existing.id);
+    return {name,updated:true,id:existing.id,shared:true};
   }
-  const i=db.prepare('INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(NULL,?,?,?,?,?,\'thesportsdb\')').run(name,country,'club',logo,external_id);
-  return {name,added:true,id:i.lastInsertRowid};
+  const i=db.prepare('INSERT INTO teams(user_id,name,country,team_type,logo,external_id,source) VALUES(NULL,?,?,?,?,?,''thesportsdb'')').run(name,country,'club',logo,external_id);
+  return {name,added:true,id:i.lastInsertRowid,shared:true};
 }
 app.post('/api/teams/seed-leagues',async(req,res)=>{
   const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
@@ -337,10 +339,8 @@ async function preloadTeamCatalog(){normalizeTeamCatalog();
     }catch(e){}
   }
 
-  const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL OR user_id=?").get(req.user.id).count;
-  res.json({ok:true,count:results.length,total,teams:results});
-
-  return {ok:true,count:results.length,teams:results};
+  const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count;
+  return {ok:true,count:results.length,total,teams:results};
 }
 app.post('/api/teams/seed-all',async(req,res)=>{try{res.json(await preloadTeamCatalog())}catch(e){console.error('seed-all',e);res.status(500).json({error:'Não foi possível pré-carregar o catálogo de equipas.'})}});
 app.get('/api/admin/competition-catalog',requireAdmin,(req,res)=>{const country=db.prepare('SELECT name FROM countries WHERE id=?').get(req.query.country_id);res.json(country&&Array.isArray(catalog[country.name])?catalog[country.name]:[])});app.get('/api/admin/competition-catalog-all',requireAdmin,(req,res)=>{const rows=[];for(const country of all('SELECT id,name FROM countries WHERE user_id IS NULL OR user_id=? ORDER BY name',req.user.id))for(const name of (catalog[country.name]||[]))rows.push({country_id:country.id,country_name:country.name,name});res.json(rows)});
