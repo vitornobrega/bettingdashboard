@@ -147,18 +147,29 @@ try{
     NZ:'Nova Zelândia',ZA:'África do Sul',MA:'Marrocos',DZ:'Argélia',TN:'Tunísia',EG:'Egipto',SA:'Arábia Saudita',
     AE:'Emirados Árabes Unidos',QA:'Catar',IL:'Israel',RU:'Rússia'
   };
-  for(const [code,canonical] of Object.entries(countryByCode)){
-    const target=db.prepare('SELECT id FROM countries WHERE lower(trim(name))=lower(trim(?)) LIMIT 1').get(canonical);
-    const source=db.prepare('SELECT id,name FROM countries WHERE upper(code)=upper(?) OR lower(trim(name))=lower(trim(?)) LIMIT 1').get(code,canonical);
-    if(!target)continue;
-    db.prepare('UPDATE countries SET code=? WHERE id=?').run(code,target.id);
-    const duplicates=db.prepare('SELECT id FROM countries WHERE id<>? AND (upper(code)=upper(?) OR lower(trim(name))=lower(trim(?)))').all(target.id,code,canonical);
-    for(const d of duplicates){
-      db.prepare('UPDATE competitions SET country_id=? WHERE country_id=?').run(target.id,d.id);
-      db.prepare('DELETE FROM countries WHERE id=?').run(d.id);
+  const tx=db.transaction(()=>{
+    for(const [code,canonical] of Object.entries(countryByCode)){
+      let target=db.prepare('SELECT id FROM countries WHERE lower(trim(name))=lower(trim(?)) ORDER BY id LIMIT 1').get(canonical);
+      if(!target)target=db.prepare('SELECT id FROM countries WHERE upper(code)=upper(?) ORDER BY id LIMIT 1').get(code);
+      if(!target)continue;
+      const duplicates=db.prepare('SELECT id FROM countries WHERE id<>? AND (upper(code)=upper(?) OR lower(trim(name))=lower(trim(?)))').all(target.id,code,canonical);
+      for(const d of duplicates){
+        db.prepare('UPDATE competitions SET country_id=? WHERE country_id=?').run(target.id,d.id);
+        db.prepare('DELETE FROM countries WHERE id=?').run(d.id);
+      }
+      db.prepare('UPDATE countries SET code=? WHERE id=?').run(code,target.id);
     }
-  }
-  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_countries_code ON countries(code)');
+    const duplicateCodes=db.prepare("SELECT upper(code) code, MIN(id) keep_id FROM countries WHERE code IS NOT NULL AND trim(code)<>'' GROUP BY upper(code) HAVING COUNT(*)>1").all();
+    for(const d of duplicateCodes){
+      const duplicates=db.prepare('SELECT id FROM countries WHERE id<>? AND upper(code)=upper(?)').all(d.keep_id,d.code);
+      for(const row of duplicates){
+        db.prepare('UPDATE competitions SET country_id=? WHERE country_id=?').run(d.keep_id,row.id);
+        db.prepare('DELETE FROM countries WHERE id=?').run(row.id);
+      }
+    }
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_countries_code ON countries(code)');
+  });
+  tx();
 }catch(e){console.error('Country catalogue validation:',e.message)}
 
 
@@ -272,7 +283,6 @@ function cleanupTeamCatalog(){
   tx();
 }
 cleanupTeamCatalog();
-normalizeTeamCatalog();
 function syncTeamRecord(t,source='thesportsdb'){
   if(!t?.strTeam)return null;
   const name=String(t.strTeam).trim(),country=String(t.strCountry||'').trim(),logo=String(t.strBadge||t.strLogo||'').trim(),external_id=String(t.idTeam||'').trim();
