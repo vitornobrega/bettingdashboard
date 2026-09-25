@@ -594,3 +594,61 @@ html[data-theme='dark'] .dashboard-page .trend-pill.neutral{background:#374151;c
 html[data-theme='dark'] .dashboard-page section{background:#1f2937;border-color:#374151}
 html[data-theme='dark'] .dashboard-page .filters select,
 html[data-theme='dark'] .dashboard-page .filters input{background:#111827;color:#f9fafb;border-color:#4b5563}
+
+
+/* Tema escuro — seletor de equipas no registo de apostas. */
+html[data-theme='dark'] .teams-matchup{
+  background:linear-gradient(180deg,#1f2937,#111827);
+  border-color:#374151;
+  box-shadow:0 4px 14px rgba(0,0,0,.22);
+}
+html[data-theme='dark'] .teams-matchup .team-field{
+  color:#cbd5e1;
+}
+html[data-theme='dark'] .teams-matchup .team-field input,
+html[data-theme='dark'] .team-create-form input,
+html[data-theme='dark'] .team-create-form select{
+  background:#111827;
+  color:#f9fafb;
+  border-color:#4b5563;
+}
+html[data-theme='dark'] .team-input-row{
+  background:#111827;
+  border-radius:10px;
+}
+html[data-theme='dark'] .team-input-logo{
+  background:#1f2937;
+}
+html[data-theme='dark'] .team-selected-meta{
+  background:#111827;
+  border-color:#374151;
+  color:#94a3b8;
+}
+html[data-theme='dark'] .team-selected-meta b{
+  color:#e5e7eb;
+}
+html[data-theme='dark'] .team-suggestions{
+  background:#1f2937;
+  border-color:#374151;
+  box-shadow:0 14px 30px rgba(0,0,0,.4);
+}
+html[data-theme='dark'] .team-suggestions>button{
+  color:#f9fafb;
+}
+html[data-theme='dark'] .team-suggestions>button:hover{
+  background:#263244;
+}
+html[data-theme='dark'] .team-suggestions>button small{
+  color:#94a3b8;
+}
+html[data-theme='dark'] .team-suggestions .team-create,
+html[data-theme='dark'] .team-create-form{
+  border-color:#374151;
+}
+html[data-theme='dark'] .team-create-form{
+  background:#1f2937;
+  color:#cbd5e1;
+}
+html[data-theme='dark'] .team-create-form label{
+  color:#cbd5e1;
+}
