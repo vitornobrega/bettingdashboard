@@ -50,8 +50,9 @@ const teamLogoFor=(team,teams=[])=>{
 };
 function TeamField({label,value,onChange,teams,country,countries=[],language='pt',onSelectTeam}){
   const[open,setOpen]=useState(false),[create,setCreate]=useState(false),[busy,setBusy]=useState(false),[newTeam,setNewTeam]=useState({country:country||'',team_type:'club',logo:''});
-  const q=String(value||'').trim().toLowerCase();
-  const countryAliases={'Netherlands':'Países Baixos','The Netherlands':'Países Baixos','Nederland':'Países Baixos','England':'Inglaterra','Germany':'Alemanha','Spain':'Espanha','France':'França','Italy':'Itália','Belgium':'Bélgica','Turkey':'Turquia','Greece':'Grécia','Scotland':'Escócia','Brazil':'Brasil','Argentina':'Argentina','United States':'EUA','USA':'EUA','Portugal':'Portugal'};const normCountry=v=>{const raw=String(v||'').trim();return countryAliases[raw]||raw};const isInternational=normCountry(country).toLowerCase()==='internacional';const matches=(teams||[]).filter(t=>(!q||teamDisplayName(t,language).toLowerCase().includes(q)||String(t.country||'').toLowerCase().includes(q))&&(isInternational||!country||!t.country||normCountry(t.country).toLowerCase()===normCountry(country).toLowerCase())).slice(0,10);
+  const normalizeSearch=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  const q=normalizeSearch(value);
+  const countryAliases={'Netherlands':'Países Baixos','The Netherlands':'Países Baixos','Nederland':'Países Baixos','England':'Inglaterra','Germany':'Alemanha','Spain':'Espanha','France':'França','Italy':'Itália','Belgium':'Bélgica','Turkey':'Turquia','Greece':'Grécia','Scotland':'Escócia','Brazil':'Brasil','Argentina':'Argentina','United States':'EUA','USA':'EUA','Portugal':'Portugal'};const normCountry=v=>{const raw=String(v||'').trim();return countryAliases[raw]||raw};const isInternational=normalizeSearch(normCountry(country))==='internacional';const matches=(teams||[]).filter(t=>(!q||normalizeSearch(teamDisplayName(t,language)).includes(q)||normalizeSearch(t.country).includes(q))&&(isInternational||!country||!t.country||normalizeSearch(normCountry(t.country))===normalizeSearch(normCountry(country)))).slice(0,10);
   const save=()=>{
     const name=String(value||'').trim();
     if(!name)return;
