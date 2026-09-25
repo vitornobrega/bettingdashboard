@@ -340,7 +340,7 @@ async function preloadStaticFootballLogos(){
           const dash=folder.indexOf(' - ');
           const countryKey=dash>0?folder.slice(0,dash):folder;
           const country=staticLogoCountryMap[countryKey];
-          const name=parts[2].replace(/\\.png$/i,'').trim();
+          const name=parts[2].replace(/\.(?:png|jpg|jpeg|webp)$/i,'').trim();
           if(!country||!name)return null;
           return {
             name,country,
