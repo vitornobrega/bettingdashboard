@@ -272,6 +272,41 @@ const staticLogoCountryMap={
 const staticLogoTreeUrl='https://api.github.com/repos/luukhopman/football-logos/git/trees/master?recursive=1';
 const staticLogoRawBase='https://raw.githubusercontent.com/luukhopman/football-logos/master/';
 
+async function preloadSecondaryFootballCatalog(){
+  const token=String(process.env.SPORTMONKS_API_TOKEN||'').trim();
+  if(!token)return {count:0,total:db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count,skipped:true};
+  const leaguesUrl='https://api.sportmonks.com/v3/football/leagues?api_token='+encodeURIComponent(token);
+  let leagues=[];
+  try{
+    const r=await fetch(leaguesUrl);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    leagues=Array.isArray(d.data)?d.data:[];
+  }catch(e){
+    console.error('Catálogo Sportmonks (ligas):',e.message);
+    return {count:0,total:db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count,skipped:false};
+  }
+  const wantedCountries=new Set(['Brazil','Argentina','United States','Mexico','Japan','South Korea','China','Australia','Saudi Arabia','United Arab Emirates','India','South Africa','Egypt','Morocco','Algeria','Nigeria','Ghana','Tunisia','Portugal','Spain','England','Germany','Italy','France','Netherlands','Belgium','Scotland','Turkey']);
+  const selected=leagues.filter(l=>wantedCountries.has(String(l.country?.name||l.country_name||'').trim())||/Serie B|Série B|Primera Nacional|Primera B|USL|Liga MX|Expansion|J2|J3|K League|Chinese Super League|Saudi|Pro League|Indian Super|I-League|South African|Egyptian|Moroccan|Algerian|Nigerian|Ghanaian|Tunisian|Liga 3|Primera Federacion|National League|3\. Liga|Serie C|Serie D|Championship|Ligue 2|2\. Bundesliga|Serie B|Eerste Divisie|Challenger Pro|1\. Liga|2\. Liga/i.test(String(l.name||'')));
+  const unique=[...new Map(selected.map(l=>[String(l.id),l])).values()];
+  let count=0;
+  for(const league of unique){
+    try{
+      const url='https://api.sportmonks.com/v3/football/teams/seasons/'+encodeURIComponent(String(league.current_season_id||league.season_id||''))+'?api_token='+encodeURIComponent(token);
+      if(!league.current_season_id&&!league.season_id)continue;
+      const r=await fetch(url);
+      if(!r.ok)continue;
+      const d=await r.json();
+      for(const t of (d.data||[])){
+        const x=syncTeamRecord({strTeam:t.name,strCountry:t.country?.name||'',strBadge:t.image_path||'',idTeam:'sportmonks:'+t.id},'sportmonks');
+        if(x)count++;
+      }
+    }catch(e){}
+  }
+  normalizeTeamCatalog();
+  return {count,total:db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count,leagues:unique.length};
+}
+
 async function preloadStaticFootballLogos(){
   const cacheKey='football_logos_manifest_v1';
   const cacheUpdatedKey='football_logos_manifest_v1_updated_at';
@@ -373,6 +408,7 @@ app.put('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const row=db
 app.delete('/api/teams/:id',(req,res)=>{const id=Number(req.params.id);const r=db.prepare('DELETE FROM teams WHERE id=? AND user_id=?').run(id,req.user.id);if(!r.changes)return res.status(404).json({error:'Equipa não encontrada.'});res.json({ok:true})});
 async function preloadTeamCatalog(){normalizeTeamCatalog();
   const staticCatalog=await preloadStaticFootballLogos();
+  const secondaryCatalog=await preloadSecondaryFootballCatalog();
   const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
   const leagues=[...popularLeagues,...secondDivisionLeagues];
   const addLeagueTeams=async(league)=>{
@@ -406,7 +442,7 @@ async function preloadTeamCatalog(){normalizeTeamCatalog();
   }
 
   const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count;
-  return {ok:true,count:results.length+staticCatalog.count,total,static_count:staticCatalog.count,teams:results};
+  return {ok:true,count:results.length+staticCatalog.count+secondaryCatalog.count,total,static_count:staticCatalog.count,secondary_count:secondaryCatalog.count,teams:results};
 }
 app.post('/api/teams/seed-all',async(req,res)=>{try{res.json(await preloadTeamCatalog())}catch(e){console.error('seed-all',e);res.status(500).json({error:'Não foi possível pré-carregar o catálogo de equipas.'})}});
 app.get('/api/admin/competition-catalog',requireAdmin,(req,res)=>{const country=db.prepare('SELECT name FROM countries WHERE id=?').get(req.query.country_id);res.json(country&&Array.isArray(catalog[country.name])?catalog[country.name]:[])});app.get('/api/admin/competition-catalog-all',requireAdmin,(req,res)=>{const rows=[];for(const country of all('SELECT id,name FROM countries WHERE user_id IS NULL OR user_id=? ORDER BY name',req.user.id))for(const name of (catalog[country.name]||[]))rows.push({country_id:country.id,country_name:country.name,name});res.json(rows)});
