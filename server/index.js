@@ -267,9 +267,7 @@ const teamCanonicalAliases={
 };
 const teamNameKey=name=>{
   let value=String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/&/g,'and').toLowerCase().trim();
-  // Treat common club suffixes/prefixes as formatting, so "Arsenal FC",
-  // "Arsenal F.C." and "FC Arsenal" resolve to the same team.
-  value=value.replace(/(?:^|\\s)(?:f\\.?c\\.?|football club|a\\.?f\\.?c\\.?|c\\.?f\\.?|b\\.?c\\.?)(?=\\s|$)/gi,' ');
+  value=value.replace(/(?:^|\s)(?:f\.?c\.?|football club|a\.?f\.?c\.?|c\.?f\.?|b\.?c\.?)\s*/gi,' ');
   value=value.replace(/[^a-z0-9]+/gi,'').trim();
   return value;
 };
