@@ -240,6 +240,10 @@ const teamCanonicalAliases={
   'FC Porto':['FC Porto','Porto','F.C. Porto','FC Porto B']
 };
 function cleanupTeamCatalog(){
+  // A normalização (ex.: "FC Porto.png" -> "FC Porto") pode colidir
+  // com o índice único antes de termos oportunidade de fundir os registos.
+  // Removemos o índice temporariamente, fazemos a limpeza e recriamos no fim.
+  db.exec("DROP INDEX IF EXISTS idx_teams_name_normalized");
   const tx=db.transaction(()=>{
     const rows=db.prepare("SELECT * FROM teams ORDER BY id").all();
     const seen=new Map();
@@ -281,6 +285,7 @@ function cleanupTeamCatalog(){
     }
   });
   tx();
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_teams_name_normalized ON teams(user_id, lower(trim(name)))");
 }
 cleanupTeamCatalog();
 function syncTeamRecord(t,source='thesportsdb'){
