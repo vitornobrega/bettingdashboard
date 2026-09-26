@@ -667,3 +667,5 @@ html[data-theme='dark'] .bets-tablewrap tr.bet-history-loss td{background:#3a1d2
 html[data-theme='dark'] .bets-tablewrap tr.bet-history-win:hover td{background:#174b2a}
 html[data-theme='dark'] .bets-tablewrap tr.bet-history-loss:hover td{background:#4a2328}
 html[data-theme='dark'] .bets-tablewrap .icon-btn{background:#1f2937;color:#e5e7eb;border-color:#475569}
+
+.usage-bars{display:flex;flex-direction:column;gap:10px}.usage-bar-row{display:grid;grid-template-columns:46px minmax(120px,1fr) 55px 105px;align-items:center;gap:10px;font-size:12px}.usage-bar-track{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden}.usage-bar-fill{height:100%;background:var(--accent-color);border-radius:999px}.usage-bar-row small{color:#64748b}.usage-bar-row b{text-align:right}html[data-theme='dark'] .usage-bar-track{background:#374151}html[data-theme='dark'] .usage-bar-row small{color:#cbd5e1}@media(max-width:700px){.usage-bar-row{grid-template-columns:40px minmax(80px,1fr) 40px;}.usage-bar-row small{display:none}}
