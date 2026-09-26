@@ -487,13 +487,6 @@ async function preloadStaticFootballLogos(){
   const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count;
   return {count,total};
 }
-app.post('/api/teams/seed-leagues',async(req,res)=>{
-  const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
-  for(const league of popularLeagues){
-    try{
-      const u=`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/search_all_teams.php?l=${encodeURIComponent(league.name.replaceAll(' ','_'))}`;
-      const r=await fetch(u); if(!r.ok)continue; const d=await r.json();
-      for(const t of (d.teams||[])){const x=await syncTeamRecord({...t,strCountry:t.strCountry||league.country});
 const secondDivisionLeagues=[
   {name:'Liga Portugal 2',country:'Portugal'},
   {name:'English League Championship',country:'England'},
@@ -515,9 +508,9 @@ const secondDivisionLeagues=[
   {name:'Spanish Primera Federacion',country:'Spain'},
   {name:'German 3. Liga',country:'Germany'}
 ];
-app.post('/api/teams/seed-second-divisions',async(req,res)=>{
+app.post('/api/teams/seed-leagues',async(req,res)=>{
   const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
-  for(const league of secondDivisionLeagues){
+  for(const league of popularLeagues){
     try{
       const u=`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/search_all_teams.php?l=${encodeURIComponent(league.name.replaceAll(' ','_'))}`;
       const r=await fetch(u);if(!r.ok)continue;const d=await r.json();
@@ -526,7 +519,13 @@ app.post('/api/teams/seed-second-divisions',async(req,res)=>{
   }
   res.json({ok:true,count:results.length,teams:results});
 });
-if(x)results.push({...x,league:league.name});}
+app.post('/api/teams/seed-second-divisions',async(req,res)=>{
+  const results=[];const key=process.env.THESPORTSDB_API_KEY||'123';
+  for(const league of secondDivisionLeagues){
+    try{
+      const u=`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/search_all_teams.php?l=${encodeURIComponent(league.name.replaceAll(' ','_'))}`;
+      const r=await fetch(u);if(!r.ok)continue;const d=await r.json();
+      for(const t of (d.teams||[])){const x=await syncTeamRecord({...t,strCountry:t.strCountry||league.country});if(x)results.push({...x,league:league.name});}
     }catch(e){}
   }
   res.json({ok:true,count:results.length,teams:results});
