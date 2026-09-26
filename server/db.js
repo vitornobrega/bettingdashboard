@@ -33,17 +33,28 @@ const pgSql=(sql)=>{
   q=q.replace(/\bINSERT\s+OR\s+REPLACE\s+INTO\b/ig,'INSERT INTO');
   return quoteAwarePlaceholders(q);
 };
-const tableFromInsert=(sql)=>{const m=sql.match(/^INSERT\s+INTO\s+([A-Za-z0-9_]+)/i);return m?.[1]||null};
+const tableFromInsert=(sql)=>{const m=sql.match(/^INSERT\s+INTO\s+([A-Za-z0-9_]+)/i);return m?.[1]||null};\nconst splitSqlStatements=(sql)=>{
+  const parts=[];let start=0,single=false,double=false;
+  for(let i=0;i<String(sql).length;i++){
+    const ch=sql[i];
+    if(ch==="'"&&!double){if(single&&sql[i+1]==="'"){i++;continue}single=!single;continue}
+    if(ch==='"'&&!single){double=!double;continue}
+    if(ch===';'&&!single&&!double){const part=sql.slice(start,i).trim();if(part)parts.push(part);start=i+1;}
+  }
+  const tail=sql.slice(start).trim();if(tail)parts.push(tail);return parts;
+};
+
 
 function createPostgres(url){
   const client=new PgNative();
   client.connectSync(url);
   let lastInsertRowid=0;
   const exec=(sql,params)=>{
-    const q=pgSql(sql);
+    const statements=splitSqlStatements(pgSql(sql));
     try{
-      const rows=client.querySync(q,params||[]);
-      return rows||[];
+      let rows=[];
+      for(const q of statements) rows=client.querySync(q,params||[])||rows;
+      return rows;
     }catch(e){
       if(e?.code==='42701'){
         e.message='ERROR: duplicate column name: '+(e?.message||'column already exists');
