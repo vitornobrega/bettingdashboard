@@ -483,7 +483,7 @@ async function preloadStaticFootballLogos(){
     return count;
   });
   const count=upsert(entries);
-  normalizeTeamCatalog();
+  cleanupTeamCatalog();
   const total=db.prepare("SELECT COUNT(*) count FROM teams WHERE user_id IS NULL").get().count;
   return {count,total};
 }
