@@ -40,8 +40,15 @@ function createPostgres(url){
   let lastInsertRowid=0;
   const exec=(sql,params)=>{
     const q=pgSql(sql);
-    const rows=client.querySync(q,params||[]);
-    return rows||[];
+    try{
+      const rows=client.querySync(q,params||[]);
+      return rows||[];
+    }catch(e){
+      if(e?.code==='42701'){
+        e.message='ERROR: duplicate column name: '+(e?.message||'column already exists');
+      }
+      throw e;
+    }
   };
   const prepare=(sql)=>{
     const original=String(sql);
