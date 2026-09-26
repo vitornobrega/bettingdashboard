@@ -22,7 +22,7 @@ O Stack inclui:
 
 O serviço de migração é idempotente para os dados existentes e o volume SQLite **não deve ser apagado** até a migração ser validada.
 
-Para produção, substitui as credenciais de teste por credenciais/segredos próprios. A imagem oficial do PostgreSQL requer uma password na inicialização e suporta `POSTGRES_DB`, `POSTGRES_USER` e `POSTGRES_PASSWORD`. citeturn1search0
+Para produção, substitui as credenciais de teste por credenciais/segredos próprios. A imagem oficial do PostgreSQL requer uma password na inicialização e suporta `POSTGRES_DB`, `POSTGRES_USER` e `POSTGRES_PASSWORD`.
 
 
 ## Autenticação
