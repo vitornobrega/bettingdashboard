@@ -20,7 +20,7 @@ const transform=(sql)=>{
   return q;
 };
 const exec=sql=>pg.querySync(transform(sql));
-const tables=sqlite.prepare("SELECT name,sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY CASE WHEN name='users' THEN 1 ELSE 2 END,id").all();
+const tables=sqlite.prepare("SELECT name,sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY CASE WHEN name='users' THEN 1 ELSE 2 END,name").all();
 
 pg.querySync('BEGIN');
 try{
