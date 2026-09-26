@@ -1,5 +1,5 @@
-const express=require('express');const Database=require('better-sqlite3');const path=require('path');const fs=require('fs');const crypto=require('crypto');
-const app=express();app.use(express.json({limit:'1mb'}));const dataDir=process.env.DATA_DIR||'/app/data';fs.mkdirSync(dataDir,{recursive:true});const db=new Database(path.join(dataDir,'betting.db'));db.pragma('journal_mode = WAL');
+const express=require('express');const createDatabase=require('./db');const path=require('path');const fs=require('fs');const crypto=require('crypto');
+const app=express();app.use(express.json({limit:'1mb'}));const dataDir=process.env.DATA_DIR||'/app/data';fs.mkdirSync(dataDir,{recursive:true});const db=createDatabase(path.join(dataDir,'betting.db'));
 try{db.exec("ALTER TABLE houses ADD COLUMN bonus_weekly INTEGER NOT NULL DEFAULT 0")}catch(e){if(!String(e.message).includes('duplicate column name'))throw e}
 try{db.exec("ALTER TABLE houses ADD COLUMN stake_limit_percent REAL NOT NULL DEFAULT 2")}catch(e){if(!String(e.message).includes('duplicate column name'))throw e}
 db.exec(`CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,email TEXT NOT NULL UNIQUE,password_hash TEXT NOT NULL,role TEXT NOT NULL DEFAULT 'user',active INTEGER NOT NULL DEFAULT 1,language TEXT NOT NULL DEFAULT 'pt',currency TEXT NOT NULL DEFAULT 'EUR',created_at TEXT DEFAULT CURRENT_TIMESTAMP);
