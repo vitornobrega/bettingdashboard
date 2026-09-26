@@ -26,7 +26,30 @@ const tables=sqlite.prepare("SELECT name,sql FROM sqlite_master WHERE type='tabl
 pg.querySync('BEGIN');
 try{
   pg.querySync('SET session_replication_role = replica');
-  for(const t of tables)exec(t.sql);
+
+  const pending=[...tables];
+  let pass=0;
+  while(pending.length){
+    pass++;
+    let created=0;
+    for(let i=pending.length-1;i>=0;i--){
+      const t=pending[i];
+      pg.querySync('SAVEPOINT create_table');
+      try{
+        exec(t.sql);
+        pg.querySync('RELEASE SAVEPOINT create_table');
+        pending.splice(i,1);
+        created++;
+      }catch(e){
+        try{pg.querySync('ROLLBACK TO SAVEPOINT create_table')}catch{}
+        try{pg.querySync('RELEASE SAVEPOINT create_table')}catch{}
+        if(!/relation ".*" does not exist/i.test(String(e.message||e)))throw e;
+      }
+    }
+    if(!created)throw new Error('Não foi possível criar as tabelas restantes. Verifique dependências circulares ou o esquema SQLite.');
+    if(pass>tables.length+1)throw new Error('Demasiadas tentativas ao criar as tabelas PostgreSQL.');
+  }
+
   for(const t of tables){
     const rows=sqlite.prepare('SELECT * FROM "'+t.name.replaceAll('"','""')+'"').all();
     if(!rows.length)continue;
