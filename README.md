@@ -4,26 +4,26 @@ Tracker pessoal de apostas de futebol, inspirado na UI do projeto original BetTr
 
 Inclui apostas, casas de apostas, condições/bónus semanais, depósitos/levantamentos/ajustes, dashboard, P&L/ROI/win rate e exportação CSV.
 
-## Portainer
-O GitHub Actions publica `ghcr.io/vitornobrega/bettingdashboard:latest`.
+## Portainer / PostgreSQL
 
-```yaml
-services:
-  bettingdashboard:
-    image: ghcr.io/vitornobrega/bettingdashboard:latest
-    container_name: bettingdashboard
-    restart: unless-stopped
-    ports:
-      - "3080:3000"
-    environment:
-      TZ: Europe/Lisbon
-    volumes:
-      - bettingdashboard_data:/app/data
-volumes:
-  bettingdashboard_data:
-```
+A aplicação suporta PostgreSQL através de `DATABASE_URL`. Sem essa variável, o desenvolvimento local continua a usar SQLite.
 
-A password da casa é guardada na base de dados local do servidor e não é devolvida pelo endpoint de listagem. Para produção, recomendo acrescentar encriptação com uma chave/secret do Docker.
+Para testes no Portainer, o repositório inclui `compose.yaml` com **todos os valores definidos diretamente** (sem `.env` e sem variáveis externas). As credenciais atuais são deliberadamente simples e devem ser alteradas antes de produção:
+
+- PostgreSQL: `bettracker`
+- Utilizador: `bettracker`
+- Password de teste: `bettracker_test`
+- App: `http://<servidor>:3080`
+
+O Stack inclui:
+1. PostgreSQL 17 com volume persistente.
+2. Um serviço de migração que, se existir `/app/data/betting.db`, copia os dados SQLite para PostgreSQL.
+3. A aplicação, que só arranca depois de PostgreSQL estar saudável e a migração terminar.
+
+O serviço de migração é idempotente para os dados existentes e o volume SQLite **não deve ser apagado** até a migração ser validada.
+
+Para produção, substitui as credenciais de teste por credenciais/segredos próprios. A imagem oficial do PostgreSQL requer uma password na inicialização e suporta `POSTGRES_DB`, `POSTGRES_USER` e `POSTGRES_PASSWORD`. citeturn1search0
+
 
 ## Autenticação
 
