@@ -1,0 +1,39 @@
+services:
+  bettingdashboard:
+    image: ghcr.io/vitornobrega/bettingdashboard:latest
+    container_name: bettingdashboard
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3080:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://bettracker:bettracker_test@postgres:5432/bettracker
+      PRELOAD_CATALOG_ON_START: "true"
+      TZ: Europe/Lisbon
+    volumes:
+      - bettingdashboard_data:/app/data
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: bettingdashboard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bettracker
+      POSTGRES_USER: bettracker
+      POSTGRES_PASSWORD: bettracker_test
+      TZ: Europe/Lisbon
+    volumes:
+      - bettingdashboard_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bettracker -d bettracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  bettingdashboard_data:
+  bettingdashboard_postgres:
