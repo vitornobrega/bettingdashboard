@@ -20,7 +20,7 @@ const pgSql=(sql)=>{
     q=q.replace(/;\s*$/,'')+' ON CONFLICT DO NOTHING';
   }
   q=q.replace(/datetime\(\s*'now'\s*\)/ig, "to_char(CURRENT_TIMESTAMP,'YYYY-MM-DD HH24:MI:SS')");
-  q=q.replace(/datetime\\(\\s*([A-Za-z_][A-Za-z0-9_.]*)\\s*\\)/ig,'$1::timestamp');
+  q=q.replace(/datetime\(\s*([A-Za-z_][A-Za-z0-9_.]*)\s*\)/ig,'$1::timestamp');
   q=q.replace(/datetime\(\s*'now'\s*,\s*'([+-])([0-9]+)\s+(day|days|month|months|year|years)'\s*\)/ig,(_,sign,n,u)=>{
     const unit=u.startsWith('month')?'month':u.startsWith('year')?'year':'day';
     return `to_char(CURRENT_TIMESTAMP ${sign==='-'?'-':'+'} INTERVAL '${n} ${unit}','YYYY-MM-DD HH24:MI:SS')`;
