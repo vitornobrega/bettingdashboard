@@ -33,7 +33,8 @@ const pgSql=(sql)=>{
   q=q.replace(/\bINSERT\s+OR\s+REPLACE\s+INTO\b/ig,'INSERT INTO');
   return quoteAwarePlaceholders(q);
 };
-const tableFromInsert=(sql)=>{const m=sql.match(/^INSERT\s+INTO\s+([A-Za-z0-9_]+)/i);return m?.[1]||null};\nconst splitSqlStatements=(sql)=>{
+const tableFromInsert=(sql)=>{const m=sql.match(/^INSERT\s+INTO\s+([A-Za-z0-9_]+)/i);return m?.[1]||null};
+const splitSqlStatements=(sql)=>{
   const parts=[];let start=0,single=false,double=false;
   for(let i=0;i<String(sql).length;i++){
     const ch=sql[i];
