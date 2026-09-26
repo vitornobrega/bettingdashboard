@@ -15,6 +15,7 @@ const quoteAwarePlaceholders=(sql)=>{
 const pgSql=(sql)=>{
   let q=String(sql||'').trim();
   q=q.replace(/\bINSERT\s+OR\s+IGNORE\s+INTO\b/ig,'INSERT INTO');
+  q=q.replace(/\bALTER\s+TABLE\s+([A-Za-z0-9_]+)\s+ADD\s+COLUMN\s+(?!IF\s+NOT\s+EXISTS\b)/ig,'ALTER TABLE $1 ADD COLUMN IF NOT EXISTS ');
   if(/^INSERT\s+INTO\b/i.test(q)&&!/\bON\s+CONFLICT\b/i.test(q)){
     q=q.replace(/;\s*$/,'')+' ON CONFLICT DO NOTHING';
   }
