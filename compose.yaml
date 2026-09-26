@@ -4,8 +4,23 @@ services:
     container_name: bettingdashboard
     restart: unless-stopped
     depends_on:
+      migrate:
+    image: ghcr.io/vitornobrega/bettingdashboard:latest
+    container_name: bettingdashboard-migrate
+    restart: "no"
+    depends_on:
       postgres:
         condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://bettracker:bettracker_test@postgres:5432/bettracker
+    volumes:
+      - bettingdashboard_data:/app/data
+    command: ["node", "server/migrate-sqlite-to-postgres.js", "/app/data/betting.db"]
+
+  postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "3080:3000"
     environment:
