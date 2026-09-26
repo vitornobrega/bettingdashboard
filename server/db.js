@@ -51,11 +51,13 @@ function createPostgres(url){
         let rows;
         try{
           let q=pgSql(original);
-          if(/^INSERT\s+INTO\s+[A-Za-z0-9_]+\s*\(/i.test(q)&&!/\bRETURNING\b/i.test(q)){
-            const table=tableFromInsert(q);
-            if(table&&/\bid\b/i.test(q.match(/^INSERT\s+INTO\s+\w+\s*\(([^)]+)\)/i)?.[1]||'')===false){
+          if(!/\bRETURNING\b/i.test(q)&&/^INSERT\s+INTO\b/i.test(q)){
+            const cols=q.match(/^INSERT\s+INTO\s+\w+\s*\(([^)]+)\)/i)?.[1]||'';
+            if(!/\bid\b/i.test(cols)){
               try{rows=client.querySync(q+' RETURNING id',params||[])}catch(e){rows=client.querySync(q,params||[])}
             }else rows=client.querySync(q,params||[]);
+          }else if(!/\bRETURNING\b/i.test(q)&&/^(UPDATE|DELETE)\b/i.test(q)){
+            try{rows=client.querySync(q+' RETURNING 1',params||[])}catch(e){rows=client.querySync(q,params||[])}
           }else rows=client.querySync(q,params||[]);
         }catch(e){throw e}
         if(rows?.[0]?.id!=null)lastInsertRowid=Number(rows[0].id);
