@@ -89,7 +89,7 @@ function createPostgres(url){
   };
   const db={
     prepare,exec:(sql)=>exec(sql),pragma:()=>null,
-    transaction:(fn)=>()=>{exec('BEGIN');try{const r=fn();exec('COMMIT');return r}catch(e){try{exec('ROLLBACK')}catch{}throw e}},
+    transaction:(fn)=>(...args)=>{exec('BEGIN');try{const r=fn(...args);exec('COMMIT');return r}catch(e){try{exec('ROLLBACK')}catch{}throw e}},
     get lastInsertRowid(){return lastInsertRowid},
     close:()=>client.end()
   };
