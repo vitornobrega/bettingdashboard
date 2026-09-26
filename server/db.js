@@ -74,10 +74,7 @@ function createPostgres(url){
         try{
           let q=pgSql(original);
           if(!/\bRETURNING\b/i.test(q)&&/^INSERT\s+INTO\b/i.test(q)){
-            const cols=q.match(/^INSERT\s+INTO\s+\w+\s*\(([^)]+)\)/i)?.[1]||'';
-            if(!/\bid\b/i.test(cols)){
-              try{rows=client.querySync(q+' RETURNING id',params||[])}catch(e){rows=client.querySync(q,params||[])}
-            }else rows=client.querySync(q,params||[]);
+            try{rows=client.querySync(q+' RETURNING *',params||[])}catch(e){rows=client.querySync(q,params||[])}
           }else if(!/\bRETURNING\b/i.test(q)&&/^(UPDATE|DELETE)\b/i.test(q)){
             try{rows=client.querySync(q+' RETURNING 1',params||[])}catch(e){rows=client.querySync(q,params||[])}
           }else rows=client.querySync(q,params||[]);
